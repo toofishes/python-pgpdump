@@ -12,7 +12,7 @@ CRITICAL_MASK   = 0x7f
 
 def _int2(data, offset):
     '''Pull two bytes from data at offset and return as an integer.'''
-    return data[offset] * 256 + data[offset + 1]
+    return (data[offset] << 8) + data[offset + 1]
 
 def _int4(data, offset):
     '''Pull four bytes from data at offset and return as an integer.'''
@@ -319,9 +319,8 @@ def new_tag_length(data):
 def old_tag_length(data, tag):
     '''takes the data as a list of int/longs as input;
     also the shifted old tag. Returns (offset, length).'''
-    first = data[0]
     offset = length = 0
-    temp_len = first & OLD_LEN_MASK
+    temp_len = data[0] & OLD_LEN_MASK
 
     if temp_len == 0:
         offset = 1
@@ -341,21 +340,24 @@ def old_tag_length(data, tag):
     return (offset, length)
 
 def construct_packet(data):
-    raw = data[0] & TAG_MASK
-    new = bool(raw & NEW_TAG_FLAG)
+    tag = data[0] & TAG_MASK
+    new = bool(data[0] & NEW_TAG_FLAG)
     if new:
-        offset, length = new_tag_length(data)
+        offset, length = new_tag_length(data[1:])
+        offset += 1
         partial = (data[0] >= 224 or data[0] < 255)
     else:
-        raw >>= OLD_TAG_SHIFT
-        offset, length = old_tag_length(data, raw)
+        tag >>= OLD_TAG_SHIFT
+        offset, length = old_tag_length(data, tag)
+        if length == -1:
+            length = len(data) - offset
         partial = False
     offset += 1
-    name, PacketType = TAG_TYPES.get(raw, ("Unknown", None))
+    name, PacketType = TAG_TYPES.get(tag, ("Unknown", None))
     packet_data = data[offset:offset + length]
     total_length = offset + length
     if not PacketType:
         PacketType = Packet
-    packet = PacketType(raw, name, new, partial, packet_data)
+    packet = PacketType(tag, name, new, partial, packet_data)
     return (total_length, packet)
 

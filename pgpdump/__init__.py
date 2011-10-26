@@ -28,7 +28,6 @@ class BinaryData(object):
         offset = 0
         while offset < len(self.data):
             total_length, packet = construct_packet(self.data[offset:])
-            # increment our data pointer
             offset += total_length
             yield packet
 
