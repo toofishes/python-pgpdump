@@ -328,14 +328,10 @@ def old_tag_length(data, tag):
         length = data[1]
     elif temp_len == 1:
         offset = 2
-        length += data[1] << 8
-        length += data[2]
+        length = _int2(data, 1)
     elif temp_len == 2:
         offset = 4
-        length += data[1] << 24
-        length += data[2] << 16
-        length += data[3] << 8
-        length += data[4]
+        length = _int4(data, 1)
     elif temp_len == 3:
         if tag == TAG_COMPRESSED:
             length = 0
@@ -351,7 +347,7 @@ def construct_packet(data):
         offset, length = new_tag_length(data)
         partial = (data[0] >= 224 or data[0] < 255)
     else:
-        raw = raw >> OLD_TAG_SHIFT
+        raw >>= OLD_TAG_SHIFT
         offset, length = old_tag_length(data, raw)
         partial = False
     offset += 1
