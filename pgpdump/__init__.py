@@ -17,6 +17,7 @@ class BinaryData(object):
         if not bool(data[0] & BINARY_TAG_FLAG):
             raise Exception("incorrect binary data")
         self.data = data
+        self.length = len(data)
         self.offset = 0
 
     def packets(self):
@@ -25,6 +26,13 @@ class BinaryData(object):
             # increment our data pointer
             self.offset += total_length
             yield packet
+
+    def reset(self):
+        self.offset = 0
+
+    def __repr__(self):
+        return "<%s: length %d, offset %d>" % (
+                self.__class__.__name__, self.length, self.offset)
 
 class AsciiData(object):
     pass

@@ -40,6 +40,13 @@ class Packet(object):
     def parse(self):
         pass
 
+    def __repr__(self):
+        new = "old"
+        if self.new:
+            new = "new"
+        return "<%s: %s (%d), %s, length %d>" % (
+                self.__class__.__name__, self.name, self.raw, new, self.length)
+
 class SignatureSubpacket(object):
     def __init__(self, raw, name, critical, data):
         self.raw = raw
@@ -196,19 +203,18 @@ class SignaturePacket(Packet):
 
     @staticmethod
     def lookup_hash_algorithm(alg):
+        reserved_values = (4, 5, 6, 7)
         algorithms = {
             1:  "MD5",
             2:  "SHA1",
             3:  "RIPEMD160",
-            4:  "Reserved",
-            5:  "Reserved",
-            6:  "Reserved",
-            7:  "Reserved",
             8:  "SHA256",
             9:  "SHA384",
             10: "SHA512",
             11: "SHA224",
         }
+        if alg in reserved_values:
+            return "Reserved"
         return algorithms.get(alg, "Unknown")
 
     @staticmethod
@@ -331,6 +337,8 @@ def construct_packet(data):
     name, PacketType = TAG_TYPES.get(raw, ("Unknown", None))
     packet_data = data[offset:offset + length]
     total_length = offset + length
+    if not PacketType:
+        PacketType = Packet
     packet = PacketType(raw, name, new, partial, packet_data)
     return (total_length, packet)
 

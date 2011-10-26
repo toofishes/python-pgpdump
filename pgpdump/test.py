@@ -17,8 +17,13 @@ class ParseTestCase(TestCase):
         packets = list(data.packets())
         self.assertEqual(1, len(packets))
         sig_packet = packets[0]
+        self.assertEqual(2, sig_packet.raw)
+        self.assertEqual(4, sig_packet.sig_version)
         self.assertEqual(1317069230, sig_packet.creation_time)
         self.assertEqual(0x5c2e46a0f53a76ed, sig_packet.key_id)
+        self.assertEqual(17, sig_packet.raw_pub_algorithm)
+        self.assertEqual(2, sig_packet.raw_hash_algorithm)
+        self.assertEqual("SHA1", sig_packet.hash_algorithm)
 
 class PacketTestCase(TestCase):
     def test_lookup_type(self):
