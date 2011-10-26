@@ -12,7 +12,7 @@ def parsefile(name):
     counter = 0
     for packet in data.packets():
         counter += 1
-    print counter
+    print(counter)
 
 def main():
     for filename in sys.argv[1:]:

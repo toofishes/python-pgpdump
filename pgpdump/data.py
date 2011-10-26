@@ -13,9 +13,7 @@ class BinaryData(object):
         if len(data) <= 1:
             raise Exception("data too short")
 
-        # convert any bytes/str instance to a list of ints
-        if isinstance(data, bytes):
-            data = [ord(c) for c in data]
+        data = bytearray(data)
 
         # 7th bit of the first byte must be a 1
         if not bool(data[0] & self.binary_tag_flag):
@@ -42,7 +40,7 @@ class AsciiData(BinaryData):
         self.original_data = data
         data = self.strip_magic(data)
         data, known_crc = self.split_data_crc(data)
-        data = [ord(c) for c in b64decode(data)]
+        data = bytearray(b64decode(data))
         if known_crc:
             # verify it if we could find it
             actual_crc = self.crc24(data)
@@ -55,21 +53,21 @@ class AsciiData(BinaryData):
     def strip_magic(data):
         '''Strip away the '-----BEGIN PGP SIGNATURE-----' and related cruft so
         we can safely base64 decode the remainder.'''
-        magic = '-----BEGIN PGP '
-        #ignore = '-----BEGIN PGP SIGNED '
+        magic = b'-----BEGIN PGP '
+        #ignore = b'-----BEGIN PGP SIGNED '
 
         # find our magic string
         idx = data.find(magic)
         if idx >= 0:
             # find the start of the actual data. it always immediately follows
             # a blank line, meaning headers are done.
-            nl_idx = data.find('\n\n', idx)
+            nl_idx = data.find(b'\n\n', idx)
             if nl_idx < 0:
-                nl_idx = data.find('\r\n\r\n', idx)
+                nl_idx = data.find(b'\r\n\r\n', idx)
             if nl_idx < 0:
                 raise Exception("found magic, could not find start of data")
             # now find the end of the data.
-            end_idx = data.find('-----', nl_idx)
+            end_idx = data.find(b'-----', nl_idx)
             if end_idx:
                 data = data[nl_idx:end_idx]
             else:
@@ -83,10 +81,13 @@ class AsciiData(BinaryData):
         correspnding to 3 digits (24 bits). Look for this special case.'''
         # don't let newlines trip us up
         data = data.strip()
-        if data[-5] == '=':
+        # this funkyness makes it work without changes in Py2 and Py3
+        if data[-5] in (b'=', ord(b'=')):
             # CRC is returned without the = and converted to a decimal
             crc = b64decode(data[-4:])
-            crc = (ord(crc[0]) << 16) + (ord(crc[1]) << 8) + ord(crc[2])
+            # same noted funkyness as above, due to bytearray implementation
+            crc = [ord(c) if isinstance(c, str) else c for c in crc]
+            crc = (crc[0] << 16) + (crc[1] << 8) + crc[2]
             return (data[:-5], crc)
         return (data, None)
 

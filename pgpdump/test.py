@@ -24,8 +24,8 @@ class ParseTestCase(TestCase):
         self.assertEqual(hash_alg, packet.raw_hash_algorithm)
 
     def test_parse_single_sig_packet(self):
-        base64_sig = "iEYEABECAAYFAk6A4a4ACgkQXC5GoPU6du1ATACgodGyQne3Rb7"\
-                "/eHBMRdau1KNSgZYAoLXRWt2G2wfp7haTBjJDFXMGsIMi"
+        base64_sig = b"iEYEABECAAYFAk6A4a4ACgkQXC5GoPU6du1ATACgodGyQne3Rb7"\
+                b"/eHBMRdau1KNSgZYAoLXRWt2G2wfp7haTBjJDFXMGsIMi"
         sig = base64.b64decode(base64_sig)
         data = BinaryData(sig)
         packets = list(data.packets())
@@ -37,7 +37,7 @@ class ParseTestCase(TestCase):
         self.assertEqual(2, len(sig_packet.subpackets))
 
     def test_parse_ascii_sig_packet(self):
-        asc_data = '''
+        asc_data = b'''
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.11 (GNU/Linux)
 
@@ -55,7 +55,7 @@ gMsAoLGOjudliDT9u0UqxN9KeJ22Jdne
         self.assertEqual(2, len(sig_packet.subpackets))
 
     def test_parse_linus_binary(self):
-        with open('linus.gpg', 'r') as keyfile:
+        with open('linus.gpg', 'rb') as keyfile:
             rawdata = keyfile.read()
         data = BinaryData(rawdata)
         packets = list(data.packets())
@@ -90,7 +90,7 @@ gMsAoLGOjudliDT9u0UqxN9KeJ22Jdne
         self.assertEqual(3, seen)
 
     def test_parse_linus_ascii(self):
-        with open('linus.asc', 'r') as keyfile:
+        with open('linus.asc', 'rb') as keyfile:
             rawdata = keyfile.read()
         data = AsciiData(rawdata)
         packets = list(data.packets())
