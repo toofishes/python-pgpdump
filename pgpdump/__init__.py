@@ -5,6 +5,8 @@ from .packet import construct_packet
 BINARY_TAG_FLAG = 0x80
 
 class BinaryData(object):
+    '''The base object used for extracting PGP data packets. This expects fully
+    binary data as input; such as that read from a .sig or .gpg file.'''
     def __init__(self, data):
         if not data:
             raise Exception("no data to parse")
@@ -37,6 +39,8 @@ class BinaryData(object):
                 self.__class__.__name__, self.length, self.offset)
 
 class AsciiData(BinaryData):
+    '''A wrapper class that supports ASCII-armored input. It searches for the
+    first PGP magic header and extracts the data contained within.'''
     def __init__(self, data, strip_magic=True):
         self.original_data = data
         if strip_magic:
@@ -72,6 +76,7 @@ class AsciiData(BinaryData):
 
     @staticmethod
     def crc24(data):
+        '''Implementation of the OpenPGP CRC-24 algorithm.'''
         # CRC-24-Radix-64
         # x24 + x23 + x18 + x17 + x14 + x11 + x10 + x7 + x6
         #   + x5 + x4 + x3 + x + 1 (OpenPGP)

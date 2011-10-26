@@ -11,9 +11,11 @@ CRITICAL_MASK   = 0x7f
 
 
 def _int2(data, offset):
+    '''Pull two bytes from data at offset and return as an integer.'''
     return data[offset] * 256 + data[offset + 1]
 
 def _int4(data, offset):
+    '''Pull four bytes from data at offset and return as an integer.'''
     length  = data[offset] << 24
     length += data[offset + 1] << 16
     length += data[offset + 2] << 8
@@ -21,11 +23,14 @@ def _int4(data, offset):
     return length
 
 def _int8(data, offset):
+    '''Pull eight bytes from data at offset and return as an integer.'''
     length  = _int4(data, offset) << 32
     length += _int4(data, offset + 4)
     return length
 
 class Packet(object):
+    '''The base packet object containing various fields pulled from the packet
+    header as well as a slice of the packet data.'''
     def __init__(self, raw, name, new, partial, data):
         self.raw = raw
         self.name = name
@@ -38,6 +43,9 @@ class Packet(object):
         self.parse()
 
     def parse(self):
+        '''Perform any parsing necessary to populate fields on this packet.
+        This method is called as the last step in __init__(). The base class
+        method is a no-op; subclasses should use this as required.'''
         pass
 
     def __repr__(self):
@@ -48,6 +56,8 @@ class Packet(object):
                 self.__class__.__name__, self.name, self.raw, new, self.length)
 
 class SignatureSubpacket(object):
+    '''A signature subpacket containing a type, type name, some flags, and the
+    contained data.'''
     def __init__(self, raw, name, hashed, critical, data):
         self.raw = raw
         self.name = name
@@ -166,7 +176,6 @@ class SignaturePacket(Packet):
             subtype &= CRITICAL_MASK
             name = self.lookup_signature_subtype(subtype)
 
-            # TODO parse and hold onto subpackets
             sub_data = self.data[offset:offset + sub_length]
             subpacket = SignatureSubpacket(subtype, name,
                     hashed, critical, sub_data)
