@@ -48,12 +48,21 @@ class Packet(object):
                 self.__class__.__name__, self.name, self.raw, new, self.length)
 
 class SignatureSubpacket(object):
-    def __init__(self, raw, name, critical, data):
+    def __init__(self, raw, name, hashed, critical, data):
         self.raw = raw
         self.name = name
+        self.hashed = hashed
         self.critical = critical
         self.length = len(data)
         self.data = data
+
+    def __repr__(self):
+        hashed = ""
+        if self.hashed:
+            hashed = "hashed, "
+        return "<%s: %s (%d), %slength %d>" % (
+                self.__class__.__name__, self.name, self.raw,
+                hashed, self.length)
 
 class SignaturePacket(Packet):
     def __init__(self, *args, **kwargs):
@@ -128,23 +137,25 @@ class SignaturePacket(Packet):
             # next is hashed subpackets
             length = _int2(self.data, offset)
             offset += 2
-            self.parse_subpackets(offset, length)
+            self.parse_subpackets(offset, length, True)
             offset += length
 
             # followed by subpackets
             length = _int2(self.data, offset)
             offset += 2
-            self.parse_subpackets(offset, length)
+            self.parse_subpackets(offset, length, False)
             offset += length
 
             self.hash2 = self.data[offset:offset + 2]
             offset += 2
 
-    def parse_subpackets(self, outer_offset, outer_length):
+    def parse_subpackets(self, outer_offset, outer_length, hashed=False):
         offset = outer_offset
         while offset < outer_offset + outer_length:
             # each subpacket is [variable length] [subtype] [data]
             sub_offset, sub_length = new_tag_length(self.data[offset:])
+            # sub_length includes the subtype single byte, knock that off
+            sub_length -= 1
             # initial length bytes
             offset += 1 + sub_offset
 
@@ -157,7 +168,8 @@ class SignaturePacket(Packet):
 
             # TODO parse and hold onto subpackets
             sub_data = self.data[offset:offset + sub_length]
-            subpacket = SignatureSubpacket(subtype, name, critical, sub_data)
+            subpacket = SignatureSubpacket(subtype, name,
+                    hashed, critical, sub_data)
             if subpacket.raw == 2:
                 self.creation_time = _int4(subpacket.data, 0)
             elif subpacket.raw == 16:
