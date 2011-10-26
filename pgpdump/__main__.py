@@ -1,9 +1,22 @@
 import sys
+import cProfile
 
-from . import BinaryData
+from . import AsciiData, BinaryData
 
-for filename in sys.argv[1:]:
-    with open(filename) as infile:
-        data = BinaryData(infile.read())
-        for packet in data.packets():
-            print hex(packet.key_id), packet.creation_date
+def parsefile(name):
+    with open(name) as infile:
+        if name.endswith('.asc'):
+            data = AsciiData(infile.read())
+        else:
+            data = BinaryData(infile.read())
+    counter = 0
+    for packet in data.packets():
+        counter += 1
+    print counter
+
+def main():
+    for filename in sys.argv[1:]:
+        parsefile(filename)
+
+if __name__ == '__main__':
+    cProfile.run('main()', 'main.profile')
