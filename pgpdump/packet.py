@@ -1,3 +1,6 @@
+import binascii
+import math
+
 NEW_TAG_FLAG    = 0x40
 TAG_MASK        = 0x3f
 PARTIAL_MASK    = 0x1f
@@ -9,24 +12,23 @@ TAG_COMPRESSED  = 8
 CRITICAL_BIT    = 0x80
 CRITICAL_MASK   = 0x7f
 
+def _getint(data, offset, nbytes):
+    """Gets nbytes bytes from data at offset and return as an integer"""
+    return int(binascii.hexlify(
+                data[offset:offset+nbytes]),
+               16)
 
-def _int2(data, offset):
-    '''Pull two bytes from data at offset and return as an integer.'''
-    return (data[offset] << 8) + data[offset + 1]
+def _get_mpi(data, offset):
+    """Gets a multi-precision integer as per rfc-4880
+    Returns the MPI, in hexlified form, and the new offset.
+    See: http://tools.ietf.org/html/rfc4880#section-3.2"""
+    mpi_len = _getint(data, offset, 2)
+    _len = int(math.ceil(mpi_len/8.))
+    mpi_bytestream = data[offset+2:offset+2+_len]
+    mpi = binascii.hexlify(mpi_bytestream)
+    offset += (2 + _len)
+    return mpi, offset
 
-def _int4(data, offset):
-    '''Pull four bytes from data at offset and return as an integer.'''
-    length  = data[offset] << 24
-    length += data[offset + 1] << 16
-    length += data[offset + 2] << 8
-    length += data[offset + 3]
-    return length
-
-def _int8(data, offset):
-    '''Pull eight bytes from data at offset and return as an integer.'''
-    length  = _int4(data, offset) << 32
-    length += _int4(data, offset + 4)
-    return length
 
 class Packet(object):
     '''The base packet object containing various fields pulled from the packet
@@ -109,10 +111,11 @@ class SignaturePacket(Packet):
             self.sig_type = self.lookup_signature_type(self.data[offset])
             offset += 1
 
-            self.creation_time = _int4(self.data, offset)
+            ts = _getint(self.data, offset, 4)
+            self.creation_time = ts
             offset += 4
 
-            self.key_id = _int8(self.data, offset)
+            self.key_id = _getint(self.data, offset, 8)
             offset += 8
 
             self.raw_pub_algorithm = self.data[offset]
@@ -145,13 +148,13 @@ class SignaturePacket(Packet):
             offset += 1
 
             # next is hashed subpackets
-            length = _int2(self.data, offset)
+            length = _getint(self.data, offset, 2)
             offset += 2
             self.parse_subpackets(offset, length, True)
             offset += length
 
             # followed by subpackets
-            length = _int2(self.data, offset)
+            length = _getint(self.data, offset, 2)
             offset += 2
             self.parse_subpackets(offset, length, False)
             offset += length
@@ -180,9 +183,10 @@ class SignaturePacket(Packet):
             subpacket = SignatureSubpacket(subtype, name,
                     hashed, critical, sub_data)
             if subpacket.raw == 2:
-                self.creation_time = _int4(subpacket.data, 0)
+                ts = _getint(subpacket.data, 0, 4)
+                self.creation_time = ts
             elif subpacket.raw == 16:
-                self.key_id = _int8(subpacket.data, 0)
+                self.key_id = _getint(subpacket.data, 0, 8)
             offset += sub_length
             self.subpackets.append(subpacket)
 
@@ -310,7 +314,7 @@ def new_tag_length(data):
         length = ((first - 192) << 8) + data[1] + 192
     elif first == 255:
         offset = 4
-        length = _int4(data, 1)
+        length = _getint(data, 1, 4)
     else:
         length = 1 << (first & PARTIAL_MASK)
 
@@ -327,10 +331,10 @@ def old_tag_length(data, tag):
         length = data[1]
     elif temp_len == 1:
         offset = 2
-        length = _int2(data, 1)
+        length = _getint(data, 1, 2)
     elif temp_len == 2:
         offset = 4
-        length = _int4(data, 1)
+        length = _getint(data, 1, 4)
     elif temp_len == 3:
         if tag == TAG_COMPRESSED:
             length = 0
