@@ -57,6 +57,40 @@ class Packet(object):
         return "<%s: %s (%d), %s, length %d>" % (
                 self.__class__.__name__, self.name, self.raw, new, self.length)
 
+
+class AlgoLookup(object):
+    @staticmethod
+    def lookup_pub_algorithm(alg):
+        algorithms = {
+            1:  "RSA Encrypt or Sign",
+            2:  "RSA Encrypt-Only",
+            3:  "RSA Sign-Only",
+            16: "ElGamal Encrypt-Only",
+            17: "DSA Digital Signature Algorithm",
+            18: "Elliptic Curve",
+            19: "ECDSA",
+            20: "Formerly ElGamal Encrypt or Sign",
+            21: "Diffie-Hellman",
+        }
+        return algorithms.get(alg, "Unknown")
+
+    @staticmethod
+    def lookup_hash_algorithm(alg):
+        reserved_values = (4, 5, 6, 7)
+        algorithms = {
+            1:  "MD5",
+            2:  "SHA1",
+            3:  "RIPEMD160",
+            8:  "SHA256",
+            9:  "SHA384",
+            10: "SHA512",
+            11: "SHA224",
+        }
+        if alg in reserved_values:
+            return "Reserved"
+        return algorithms.get(alg, "Unknown")
+
+
 class SignatureSubpacket(object):
     '''A signature subpacket containing a type, type name, some flags, and the
     contained data.'''
@@ -76,7 +110,7 @@ class SignatureSubpacket(object):
                 self.__class__.__name__, self.name, self.raw,
                 hashed, self.length)
 
-class SignaturePacket(Packet):
+class SignaturePacket(Packet, AlgoLookup):
     def __init__(self, *args, **kwargs):
         self.hash_material = None
         self.sig_version = None
@@ -211,36 +245,6 @@ class SignaturePacket(Packet):
         }
         return sig_types.get(typ, "Unknown")
 
-    @staticmethod
-    def lookup_pub_algorithm(alg):
-        algorithms = {
-            1:  "RSA Encrypt or Sign",
-            2:  "RSA Encrypt-Only",
-            3:  "RSA Sign-Only",
-            16: "ElGamal Encrypt-Only",
-            17: "DSA Digital Signature Algorithm",
-            18: "Elliptic Curve",
-            19: "ECDSA",
-            20: "Formerly ElGamal Encrypt or Sign",
-            21: "Diffie-Hellman",
-        }
-        return algorithms.get(alg, "Unknown")
-
-    @staticmethod
-    def lookup_hash_algorithm(alg):
-        reserved_values = (4, 5, 6, 7)
-        algorithms = {
-            1:  "MD5",
-            2:  "SHA1",
-            3:  "RIPEMD160",
-            8:  "SHA256",
-            9:  "SHA384",
-            10: "SHA512",
-            11: "SHA224",
-        }
-        if alg in reserved_values:
-            return "Reserved"
-        return algorithms.get(alg, "Unknown")
 
     @staticmethod
     def lookup_signature_subtype(typ):
