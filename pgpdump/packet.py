@@ -123,6 +123,7 @@ class SignaturePacket(Packet, AlgoLookup):
         self.raw_hash_algorithm = None
         self.hash_algorithm = None
         self.creation_time = None
+        self.datetime = None
         self.key_id = None
         self.hash2 = None
         self.subpackets = []
@@ -149,6 +150,7 @@ class SignaturePacket(Packet, AlgoLookup):
 
             ts = _getint(self.data, offset, 4)
             self.creation_time = ts
+            self.datetime = datetime.fromtimestamp(ts)
             offset += 4
 
             self.key_id = _getint(self.data, offset, 8)
@@ -221,6 +223,7 @@ class SignaturePacket(Packet, AlgoLookup):
             if subpacket.raw == 2:
                 ts = _getint(subpacket.data, 0, 4)
                 self.creation_time = ts
+                self.datetime = datetime.fromtimestamp(ts)
             elif subpacket.raw == 16:
                 self.key_id = _getint(subpacket.data, 0, 8)
             offset += sub_length
