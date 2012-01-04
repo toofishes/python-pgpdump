@@ -1,6 +1,8 @@
 import binascii
 import math
 
+from datetime import datetime
+
 NEW_TAG_FLAG    = 0x40
 TAG_MASK        = 0x3f
 PARTIAL_MASK    = 0x1f
@@ -279,6 +281,36 @@ class SignaturePacket(Packet, AlgoLookup):
             return "reserved"
         return subpacket_types.get(typ, "unknown")
 
+
+class PublicKeyPacket(Packet, AlgoLookup):
+    def __init__(self, *args, **kwargs):
+        self.pubkey_version = None
+        self.creation_time = None
+        self.datetime = None
+        self.mod = None
+        self.exp = None
+        super(PublicKeyPacket, self).__init__(*args, **kwargs)
+
+    def parse(self):
+        self.pubkey_version = self.data[0]
+        offset = 1
+        if self.pubkey_version == 4:
+            ts = _getint(self.data, offset, 4)
+            self.creation_time = ts
+            self.datetime = datetime.fromtimestamp(ts)
+            offset += 4
+
+            self.raw_pub_algorithm = self.data[offset]
+            self.pub_algorithm = self.lookup_pub_algorithm(self.data[offset])
+            offset += 1
+
+            #If RSA:
+            if self.raw_pub_algorithm == 1:
+                self.mod, offset = _get_mpi(self.data, offset)
+                self.exp, offset = _get_mpi(self.data, offset)
+                self.exp_int = int(self.exp, 16)
+
+
 TAG_TYPES = {
     # (Name, PacketType) tuples
     0:  ("Reserved", None),
@@ -287,7 +319,7 @@ TAG_TYPES = {
     3:  ("Symmetric-Key Encrypted Session Key Packet", None),
     4:  ("One-Pass Signature Packet", None),
     5:  ("Secret Key Packet", None),
-    6:  ("Public Key Packet", None),
+    6:  ("Public Key Packet", PublicKeyPacket),
     7:  ("Secret Subkey Packet", None),
     8:  ("Compressed Data Packet", None),
     9:  ("Symmetrically Encrypted Data Packet", None),
