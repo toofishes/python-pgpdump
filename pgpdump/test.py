@@ -3,7 +3,7 @@ from unittest import TestCase
 
 from pgpdump import AsciiData, BinaryData
 from pgpdump.packet import (TAG_TYPES, SignaturePacket,
-        old_tag_length, new_tag_length)
+        old_tag_length, new_tag_length, _mpi)
 
 class ParseTestCase(TestCase):
     def test_parse_exception(self):
@@ -110,6 +110,7 @@ class PacketTestCase(TestCase):
             ((2, 284),  [0x89, 0x01, 0x1c]),
             ((2, 525),  [0xb9, 0x02, 0x0d]),
             ((2, 1037), [0xb9, 0x04, 0x0d]),
+            ((2, 1037), bytearray(b'\xb9\x04\x0d')),
         ]
         for expected, invals in data:
             self.assertEqual(expected, old_tag_length(invals, 0))
@@ -124,6 +125,16 @@ class PacketTestCase(TestCase):
             ((1, 5119), [0xd3, 0x3f]),
             ((1, 6476), [0xd8, 0x8c]),
             ((4, 26306), [0xff, 0x00, 0x00, 0x66, 0xc2]),
+            ((4, 26306), bytearray(b'\xff\x00\x00\x66\xc2')),
         ]
         for expected, invals in data:
             self.assertEqual(expected, new_tag_length(invals))
+
+    def test_mpi(self):
+        data = [
+            (1,   3, (0x00, 0x01, 0x01)),
+            (511, 4, (0x00, 0x09, 0x01, 0xff)),
+            (65537, 5, bytearray(b'\x00\x11\x01\x00\x01')),
+        ]
+        for expected, offset, invals in data:
+            self.assertEqual((expected, offset), _mpi(invals, 0))

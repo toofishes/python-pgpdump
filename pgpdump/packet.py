@@ -30,6 +30,20 @@ def _int8(data, offset):
     length += _int4(data, offset + 4)
     return length
 
+def _mpi(data, offset):
+    '''Gets a multi-precision integer as per RFC-4880.
+    Returns the MPI, in hexlified form, and the new offset.
+    See: http://tools.ietf.org/html/rfc4880#section-3.2'''
+    mpi_len = _int2(data, offset)
+    offset += 2
+    to_process = (mpi_len + 7) // 8
+    mpi = 0
+    for i in range(to_process):
+        mpi <<= 8
+        mpi += data[offset + i]
+    offset += to_process
+    return mpi, offset
+
 class Packet(object):
     '''The base packet object containing various fields pulled from the packet
     header as well as a slice of the packet data.'''
@@ -307,9 +321,8 @@ class PublicKeyPacket(Packet, AlgoLookup):
 
             #If RSA:
             if self.raw_pub_algorithm == 1:
-                self.mod, offset = _get_mpi(self.data, offset)
-                self.exp, offset = _get_mpi(self.data, offset)
-                self.exp_int = int(self.exp, 16)
+                self.mod, offset = _mpi(self.data, offset)
+                self.exp, offset = _mpi(self.data, offset)
 
 
 TAG_TYPES = {
