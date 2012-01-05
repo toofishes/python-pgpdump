@@ -2,7 +2,7 @@ import base64
 from unittest import TestCase
 
 from pgpdump import AsciiData, BinaryData
-from pgpdump.packet import (TAG_TYPES, SignaturePacket,
+from pgpdump.packet import (TAG_TYPES, SignaturePacket, PublicKeyPacket,
         old_tag_length, new_tag_length, _mpi)
 
 class ParseTestCase(TestCase):
@@ -86,6 +86,11 @@ gMsAoLGOjudliDT9u0UqxN9KeJ22Jdne
                     self.check_sig_packet(packet, 287, 4, 0x18, 1316554898,
                             0x79BE3E4300411886, 1, 2)
                     self.assertEqual(3, len(packet.subpackets))
+            if isinstance(packet, PublicKeyPacket):
+                self.assertEqual(4, packet.pubkey_version)
+                self.assertEqual(1316554898, packet.creation_time)
+                self.assertEqual(1, packet.raw_pub_algorithm)
+                self.assertEqual(65537, packet.exp)
 
         self.assertEqual(3, seen)
 

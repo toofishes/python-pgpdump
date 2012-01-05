@@ -162,7 +162,7 @@ class SignaturePacket(Packet, AlgoLookup):
 
             ts = _int4(self.data, offset)
             self.creation_time = ts
-            self.datetime = datetime.fromtimestamp(ts)
+            self.datetime = datetime.utcfromtimestamp(ts)
             offset += 4
 
             self.key_id = _int8(self.data, offset)
@@ -235,7 +235,7 @@ class SignaturePacket(Packet, AlgoLookup):
             if subpacket.raw == 2:
                 ts = _int4(subpacket.data, 0)
                 self.creation_time = ts
-                self.datetime = datetime.fromtimestamp(ts)
+                self.datetime = datetime.utcfromtimestamp(ts)
             elif subpacket.raw == 16:
                 self.key_id = _int8(subpacket.data, 0)
             offset += sub_length
@@ -302,6 +302,8 @@ class PublicKeyPacket(Packet, AlgoLookup):
         self.pubkey_version = None
         self.creation_time = None
         self.datetime = None
+        self.raw_pub_algorithm = None
+        self.pub_algorithm = None
         self.mod = None
         self.exp = None
         super(PublicKeyPacket, self).__init__(*args, **kwargs)
@@ -312,7 +314,7 @@ class PublicKeyPacket(Packet, AlgoLookup):
         if self.pubkey_version == 4:
             ts = _int4(self.data, offset)
             self.creation_time = ts
-            self.datetime = datetime.fromtimestamp(ts)
+            self.datetime = datetime.utcfromtimestamp(ts)
             offset += 4
 
             self.raw_pub_algorithm = self.data[offset]
@@ -320,7 +322,7 @@ class PublicKeyPacket(Packet, AlgoLookup):
             offset += 1
 
             #If RSA:
-            if self.raw_pub_algorithm == 1:
+            if self.raw_pub_algorithm in (1, 2, 3):
                 self.mod, offset = _mpi(self.data, offset)
                 self.exp, offset = _mpi(self.data, offset)
 
