@@ -3,7 +3,7 @@ from unittest import TestCase
 
 from pgpdump import AsciiData, BinaryData
 from pgpdump.packet import (TAG_TYPES, SignaturePacket, PublicKeyPacket,
-        old_tag_length, new_tag_length, _mpi)
+        UserIDPacket, old_tag_length, new_tag_length, _mpi)
 
 class ParseTestCase(TestCase):
     def test_parse_exception(self):
@@ -64,6 +64,7 @@ gMsAoLGOjudliDT9u0UqxN9KeJ22Jdne
         for packet in packets:
             # all 44 packets are of the known 'old' variety
             self.assertFalse(packet.new)
+
             if isinstance(packet, SignaturePacket):
                 # a random signature plucked off the key
                 if packet.key_id == 0xE7BFC8EC95861109:
@@ -86,11 +87,17 @@ gMsAoLGOjudliDT9u0UqxN9KeJ22Jdne
                     self.check_sig_packet(packet, 287, 4, 0x18, 1316554898,
                             0x79BE3E4300411886, 1, 2)
                     self.assertEqual(3, len(packet.subpackets))
+
             if isinstance(packet, PublicKeyPacket):
                 self.assertEqual(4, packet.pubkey_version)
                 self.assertEqual(1316554898, packet.creation_time)
                 self.assertEqual(1, packet.raw_pub_algorithm)
                 self.assertEqual(65537, packet.exp)
+
+            if isinstance(packet, UserIDPacket):
+                self.assertEqual("Linus Torvalds", packet.user_name)
+                self.assertEqual("torvalds@linux-foundation.org",
+                        packet.user_email)
 
         self.assertEqual(3, seen)
 

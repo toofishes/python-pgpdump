@@ -1,4 +1,5 @@
 from datetime import datetime
+import re
 
 NEW_TAG_FLAG    = 0x40
 TAG_MASK        = 0x3f
@@ -330,6 +331,29 @@ class PublicKeyPacket(Packet, AlgoLookup):
                 self.exp, offset = _mpi(self.data, offset)
 
 
+class UserIDPacket(Packet):
+    '''A User ID packet consists of UTF-8 text that is intended to represent
+    the name and email address of the key holder. By convention, it includes an
+    RFC 2822 mail name-addr, but there are no restrictions on its content.'''
+    def __init__(self, *args, **kwargs):
+        self.user = None
+        self.user_name = None
+        self.user_email = None
+        super(UserIDPacket, self).__init__(*args, **kwargs)
+
+    def parse(self):
+        self.user = self.data.decode('utf8')
+        matches = re.match(r'^([^<]+)? ?<([^>]*)>?', self.user)
+        if matches:
+            self.user_name = matches.group(1).strip()
+            self.user_email = matches.group(2).strip()
+
+    def __repr__(self):
+        return "<%s: %s (%s), length %d>" % (
+                self.__class__.__name__, self.user_name, self.user_email,
+                self.length)
+
+
 class TrustPacket(Packet):
     def __init__(self, *args, **kwargs):
         self.trust = None
@@ -357,7 +381,7 @@ TAG_TYPES = {
     10: ("Marker Packet", None),
     11: ("Literal Data Packet", None),
     12: ("Trust Packet", TrustPacket),
-    13: ("User ID Packet", None),
+    13: ("User ID Packet", UserIDPacket),
     14: ("Public Subkey Packet", None),
     17: ("User Attribute Packet", None),
     18: ("Symmetrically Encrypted and MDC Packet", None),
