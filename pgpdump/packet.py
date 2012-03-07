@@ -120,9 +120,8 @@ class SignatureSubpacket(object):
         hashed = ""
         if self.hashed:
             hashed = "hashed, "
-        return "<%s: %s (%d), %slength %d>" % (
-                self.__class__.__name__, self.name, self.raw,
-                hashed, self.length)
+        return "<%s: %slength %d>" % (
+                self.__class__.__name__, hashed, self.length)
 
 class SignaturePacket(Packet, AlgoLookup):
     def __init__(self, *args, **kwargs):
@@ -262,7 +261,6 @@ class SignaturePacket(Packet, AlgoLookup):
         }
         return sig_types.get(typ, "Unknown")
 
-
     @staticmethod
     def lookup_signature_subtype(typ):
         reserved_types = (0, 1, 8, 13, 14, 15, 17, 18, 19)
@@ -295,6 +293,11 @@ class SignaturePacket(Packet, AlgoLookup):
         if typ in reserved_types:
             return "reserved"
         return subpacket_types.get(typ, "unknown")
+
+    def __repr__(self):
+        return "<%s: %s, %s, length %d>" % (
+                self.__class__.__name__, self.pub_algorithm,
+                self.hash_algorithm, self.length)
 
 
 class PublicKeyPacket(Packet, AlgoLookup):
