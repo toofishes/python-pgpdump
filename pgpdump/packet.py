@@ -327,6 +327,18 @@ class PublicKeyPacket(Packet, AlgoLookup):
                 self.exp, offset = _mpi(self.data, offset)
 
 
+class TrustPacket(Packet):
+    def __init__(self, *args, **kwargs):
+        self.trust = None
+        super(TrustPacket, self).__init__(*args, **kwargs)
+
+    def parse(self):
+        '''GnuPG public keyrings use a 2-byte trust value that appears to be
+        integer values into some internal enumeration.'''
+        if self.length == 2:
+            self.trust = _int2(self.data, 0)
+
+
 TAG_TYPES = {
     # (Name, PacketType) tuples
     0:  ("Reserved", None),
@@ -341,7 +353,7 @@ TAG_TYPES = {
     9:  ("Symmetrically Encrypted Data Packet", None),
     10: ("Marker Packet", None),
     11: ("Literal Data Packet", None),
-    12: ("Trust Packet", None),
+    12: ("Trust Packet", TrustPacket),
     13: ("User ID Packet", None),
     14: ("Public Subkey Packet", None),
     17: ("User Attribute Packet", None),
