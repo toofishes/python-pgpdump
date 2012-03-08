@@ -2,7 +2,7 @@ from datetime import datetime
 import hashlib
 import re
 
-from .utils import get_int2, get_int4, get_int8, get_mpi
+from .utils import get_int2, get_int4, get_mpi, get_key_id
 
 NEW_TAG_FLAG    = 0x40
 TAG_MASK        = 0x3f
@@ -133,7 +133,7 @@ class SignaturePacket(Packet, AlgoLookup):
             self.datetime = datetime.utcfromtimestamp(self.creation_time)
             offset += 4
 
-            self.key_id = get_int8(self.data, offset)
+            self.key_id = get_key_id(self.data, offset)
             offset += 8
 
             self.raw_pub_algorithm = self.data[offset]
@@ -207,7 +207,7 @@ class SignaturePacket(Packet, AlgoLookup):
                 self.creation_time = get_int4(subpacket.data, 0)
                 self.datetime = datetime.utcfromtimestamp(self.creation_time)
             elif subpacket.raw == 16:
-                self.key_id = get_int8(subpacket.data, 0)
+                self.key_id = get_key_id(subpacket.data, 0)
             offset += sub_length
             self.subpackets.append(subpacket)
 
@@ -297,8 +297,8 @@ class PublicKeyPacket(Packet, AlgoLookup):
             seed_bytes = (0x99, (self.length >> 8) & 0xff, self.length & 0xff)
             sha1.update(bytearray(seed_bytes))
             sha1.update(self.data)
-            self.fingerprint = sha1.hexdigest().upper()
-            self.key_id = get_int8(bytearray(sha1.digest()), 12)
+            self.fingerprint = sha1.hexdigest().upper().encode('ascii')
+            self.key_id = self.fingerprint[24:]
 
             self.creation_time = get_int4(self.data, offset)
             self.datetime = datetime.utcfromtimestamp(self.creation_time)

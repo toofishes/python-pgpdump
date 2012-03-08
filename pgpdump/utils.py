@@ -1,3 +1,5 @@
+import binascii
+
 # 256 values corresponding to each possible byte
 CRC24_TABLE = (
     0x000000, 0x864cfb, 0x8ad50d, 0x0c99f6, 0x93e6e1, 0x15aa1a, 0x1933ec,
@@ -88,3 +90,8 @@ def get_mpi(data, offset):
     offset += to_process
     return mpi, offset
 
+def get_key_id(data, offset):
+    '''Pull eight bytes from data at offset and return as a 16-byte hex-encoded
+    string.'''
+    key_id = binascii.hexlify(data[offset:offset + 8])
+    return key_id.upper()

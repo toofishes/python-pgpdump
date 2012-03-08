@@ -52,7 +52,7 @@ class ParseTestCase(TestCase):
         sig_packet = packets[0]
         self.assertFalse(sig_packet.new)
         self.check_sig_packet(sig_packet, 70, 4, 0, 1317069230,
-                0x5C2E46A0F53A76ED, 17, 2)
+                b"5C2E46A0F53A76ED", 17, 2)
         self.assertEqual(2, len(sig_packet.subpackets))
 
     def test_parse_ascii_sig_packet(self):
@@ -70,7 +70,7 @@ gMsAoLGOjudliDT9u0UqxN9KeJ22Jdne
         sig_packet = packets[0]
         self.assertFalse(sig_packet.new)
         self.check_sig_packet(sig_packet, 70, 4, 0, 1319598316,
-                0x5C2E46A0F53A76ED, 17, 2)
+                b"5C2E46A0F53A76ED", 17, 2)
         self.assertEqual(2, len(sig_packet.subpackets))
 
     def test_parse_bad_crc(self):
@@ -99,7 +99,7 @@ E/GGdt/Cn5Rr1G933H9nwxo=
         sig_packet = packets[0]
         self.assertFalse(sig_packet.new)
         self.check_sig_packet(sig_packet, 63, 3, 0, 1331181510,
-                0x5C2E46A0F53A76ED, 17, 2)
+                b"5C2E46A0F53A76ED", 17, 2)
         self.assertEqual(b'\xae\x97', sig_packet.hash2)
         self.assertEqual(0, len(sig_packet.subpackets))
 
@@ -116,25 +116,25 @@ E/GGdt/Cn5Rr1G933H9nwxo=
 
             if isinstance(packet, SignaturePacket):
                 # a random signature plucked off the key
-                if packet.key_id == 0xE7BFC8EC95861109:
+                if packet.key_id == b"E7BFC8EC95861109":
                     seen += 1
                     self.check_sig_packet(packet, 540, 4, 0x10, 1319560576,
-                            0xE7BFC8EC95861109, 1, 8)
+                            b"E7BFC8EC95861109", 1, 8)
                     self.assertEqual(2, len(packet.subpackets))
                 # a particularly dastardly sig- a ton of hashed sub parts,
                 # this is the "positive certification packet"
-                elif packet.key_id == 0x79BE3E4300411886 and \
+                elif packet.key_id == b"79BE3E4300411886" and \
                         packet.raw_sig_type == 0x13:
                     seen += 1
                     self.check_sig_packet(packet, 312, 4, 0x13, 1316554898,
-                            0x79BE3E4300411886, 1, 2)
+                            b"79BE3E4300411886", 1, 2)
                     self.assertEqual(8, len(packet.subpackets))
                 # another sig from key above, the "subkey binding sig"
-                elif packet.key_id == 0x79BE3E4300411886 and \
+                elif packet.key_id == b"79BE3E4300411886" and \
                         packet.raw_sig_type == 0x18:
                     seen += 1
                     self.check_sig_packet(packet, 287, 4, 0x18, 1316554898,
-                            0x79BE3E4300411886, 1, 2)
+                            b"79BE3E4300411886", 1, 2)
                     self.assertEqual(3, len(packet.subpackets))
 
             elif isinstance(packet, PublicSubkeyPacket):
@@ -144,7 +144,7 @@ E/GGdt/Cn5Rr1G933H9nwxo=
                 self.assertEqual(1, packet.raw_pub_algorithm)
                 self.assertIsNotNone(packet.modulus)
                 self.assertEqual(65537, packet.exponent)
-                self.assertEqual("012F54CA", packet.fingerprint[32:])
+                self.assertEqual(b"012F54CA", packet.fingerprint[32:])
 
             elif isinstance(packet, PublicKeyPacket):
                 seen += 1
@@ -153,9 +153,9 @@ E/GGdt/Cn5Rr1G933H9nwxo=
                 self.assertEqual(1, packet.raw_pub_algorithm)
                 self.assertIsNotNone(packet.modulus)
                 self.assertEqual(65537, packet.exponent)
-                self.assertEqual("ABAF11C65A2970B130ABE3C479BE3E4300411886",
+                self.assertEqual(b"ABAF11C65A2970B130ABE3C479BE3E4300411886",
                         packet.fingerprint)
-                self.assertEqual(0x79BE3E4300411886, packet.key_id)
+                self.assertEqual(b"79BE3E4300411886", packet.key_id)
 
             elif isinstance(packet, UserIDPacket):
                 seen += 1
@@ -199,7 +199,7 @@ E/GGdt/Cn5Rr1G933H9nwxo=
                 self.assertIsNone(packet.group_order)
                 self.assertIsNotNone(packet.group_gen)
                 self.assertIsNotNone(packet.key_value)
-                self.assertEqual("C3751D38", packet.fingerprint[32:])
+                self.assertEqual(b"C3751D38", packet.fingerprint[32:])
 
             elif isinstance(packet, PublicKeyPacket):
                 seen += 1
@@ -209,7 +209,7 @@ E/GGdt/Cn5Rr1G933H9nwxo=
                 self.assertIsNotNone(packet.group_order)
                 self.assertIsNotNone(packet.group_gen)
                 self.assertIsNotNone(packet.key_value)
-                self.assertEqual("A5CA9D5515DC2CA73DF748CA5C2E46A0F53A76ED",
+                self.assertEqual(b"A5CA9D5515DC2CA73DF748CA5C2E46A0F53A76ED",
                         packet.fingerprint)
 
         self.assertEqual(2, seen)
