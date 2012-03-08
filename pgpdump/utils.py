@@ -51,3 +51,40 @@ def crc24(data):
         tbl_idx = ((crc >> 16) ^ byte) & 0xff
         crc = (CRC24_TABLE[tbl_idx] ^ (crc << 8)) & 0x00ffffff
     return crc
+
+
+def get_int2(data, offset):
+    '''Pull two bytes from data at offset and return as an integer.'''
+    return (data[offset] << 8) + data[offset + 1]
+
+
+def get_int4(data, offset):
+    '''Pull four bytes from data at offset and return as an integer.'''
+    length  = data[offset] << 24
+    length += data[offset + 1] << 16
+    length += data[offset + 2] << 8
+    length += data[offset + 3]
+    return length
+
+
+def get_int8(data, offset):
+    '''Pull eight bytes from data at offset and return as an integer.'''
+    length  = get_int4(data, offset) << 32
+    length += get_int4(data, offset + 4)
+    return length
+
+
+def get_mpi(data, offset):
+    '''Gets a multi-precision integer as per RFC-4880.
+    Returns the MPI, in hexlified form, and the new offset.
+    See: http://tools.ietf.org/html/rfc4880#section-3.2'''
+    mpi_len = get_int2(data, offset)
+    offset += 2
+    to_process = (mpi_len + 7) // 8
+    mpi = 0
+    for i in range(to_process):
+        mpi <<= 8
+        mpi += data[offset + i]
+    offset += to_process
+    return mpi, offset
+

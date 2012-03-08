@@ -1,6 +1,8 @@
 from datetime import datetime
 import re
 
+from .utils import get_int2, get_int4, get_int8, get_mpi
+
 NEW_TAG_FLAG    = 0x40
 TAG_MASK        = 0x3f
 PARTIAL_MASK    = 0x1f
@@ -12,38 +14,6 @@ TAG_COMPRESSED  = 8
 CRITICAL_BIT    = 0x80
 CRITICAL_MASK   = 0x7f
 
-
-def _int2(data, offset):
-    '''Pull two bytes from data at offset and return as an integer.'''
-    return (data[offset] << 8) + data[offset + 1]
-
-def _int4(data, offset):
-    '''Pull four bytes from data at offset and return as an integer.'''
-    length  = data[offset] << 24
-    length += data[offset + 1] << 16
-    length += data[offset + 2] << 8
-    length += data[offset + 3]
-    return length
-
-def _int8(data, offset):
-    '''Pull eight bytes from data at offset and return as an integer.'''
-    length  = _int4(data, offset) << 32
-    length += _int4(data, offset + 4)
-    return length
-
-def _mpi(data, offset):
-    '''Gets a multi-precision integer as per RFC-4880.
-    Returns the MPI, in hexlified form, and the new offset.
-    See: http://tools.ietf.org/html/rfc4880#section-3.2'''
-    mpi_len = _int2(data, offset)
-    offset += 2
-    to_process = (mpi_len + 7) // 8
-    mpi = 0
-    for i in range(to_process):
-        mpi <<= 8
-        mpi += data[offset + i]
-    offset += to_process
-    return mpi, offset
 
 class Packet(object):
     '''The base packet object containing various fields pulled from the packet
@@ -161,11 +131,11 @@ class SignaturePacket(Packet, AlgoLookup):
             self.sig_type = self.lookup_signature_type(self.data[offset])
             offset += 1
 
-            self.creation_time = _int4(self.data, offset)
+            self.creation_time = get_int4(self.data, offset)
             self.datetime = datetime.utcfromtimestamp(self.creation_time)
             offset += 4
 
-            self.key_id = _int8(self.data, offset)
+            self.key_id = get_int8(self.data, offset)
             offset += 8
 
             self.raw_pub_algorithm = self.data[offset]
@@ -198,13 +168,13 @@ class SignaturePacket(Packet, AlgoLookup):
             offset += 1
 
             # next is hashed subpackets
-            length = _int2(self.data, offset)
+            length = get_int2(self.data, offset)
             offset += 2
             self.parse_subpackets(offset, length, True)
             offset += length
 
             # followed by subpackets
-            length = _int2(self.data, offset)
+            length = get_int2(self.data, offset)
             offset += 2
             self.parse_subpackets(offset, length, False)
             offset += length
@@ -233,10 +203,10 @@ class SignaturePacket(Packet, AlgoLookup):
             subpacket = SignatureSubpacket(subtype, name,
                     hashed, critical, sub_data)
             if subpacket.raw == 2:
-                self.creation_time = _int4(subpacket.data, 0)
+                self.creation_time = get_int4(subpacket.data, 0)
                 self.datetime = datetime.utcfromtimestamp(self.creation_time)
             elif subpacket.raw == 16:
-                self.key_id = _int8(subpacket.data, 0)
+                self.key_id = get_int8(subpacket.data, 0)
             offset += sub_length
             self.subpackets.append(subpacket)
 
@@ -315,7 +285,7 @@ class PublicKeyPacket(Packet, AlgoLookup):
         self.pubkey_version = self.data[0]
         offset = 1
         if self.pubkey_version == 4:
-            self.creation_time = _int4(self.data, offset)
+            self.creation_time = get_int4(self.data, offset)
             self.datetime = datetime.utcfromtimestamp(self.creation_time)
             offset += 4
 
@@ -325,8 +295,8 @@ class PublicKeyPacket(Packet, AlgoLookup):
 
             #If RSA:
             if self.raw_pub_algorithm in (1, 2, 3):
-                self.mod, offset = _mpi(self.data, offset)
-                self.exp, offset = _mpi(self.data, offset)
+                self.mod, offset = get_mpi(self.data, offset)
+                self.exp, offset = get_mpi(self.data, offset)
 
 
 class UserIDPacket(Packet):
@@ -361,7 +331,7 @@ class TrustPacket(Packet):
         '''GnuPG public keyrings use a 2-byte trust value that appears to be
         integer values into some internal enumeration.'''
         if self.length == 2:
-            self.trust = _int2(self.data, 0)
+            self.trust = get_int2(self.data, 0)
 
 
 TAG_TYPES = {
@@ -403,7 +373,7 @@ def new_tag_length(data):
         length = ((first - 192) << 8) + data[1] + 192
     elif first == 255:
         offset = 4
-        length = _int4(data, 1)
+        length = get_int4(data, 1)
     else:
         length = 1 << (first & PARTIAL_MASK)
 
@@ -420,10 +390,10 @@ def old_tag_length(data, tag):
         length = data[1]
     elif temp_len == 1:
         offset = 2
-        length = _int2(data, 1)
+        length = get_int2(data, 1)
     elif temp_len == 2:
         offset = 4
-        length = _int4(data, 1)
+        length = get_int4(data, 1)
     elif temp_len == 3:
         if tag == TAG_COMPRESSED:
             length = 0
