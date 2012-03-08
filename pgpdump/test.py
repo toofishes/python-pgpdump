@@ -5,7 +5,7 @@ from unittest import TestCase
 from pgpdump import AsciiData, BinaryData
 from pgpdump.packet import (TAG_TYPES, SignaturePacket, PublicKeyPacket,
         PublicSubkeyPacket, UserIDPacket, old_tag_length, new_tag_length)
-from pgpdump.utils import crc24, get_mpi
+from pgpdump.utils import crc24, get_mpi, get_key_id, same_key
 
 
 class UtilsTestCase(TestCase):
@@ -22,6 +22,35 @@ class UtilsTestCase(TestCase):
         ]
         for expected, offset, invals in data:
             self.assertEqual((expected, offset), get_mpi(invals, 0))
+
+    def test_key_id(self):
+        self.assertEqual(b"5C2E46A0F53A76ED",
+                get_key_id(b"\\.F\xa0\xf5:v\xed", 0))
+
+    def test_same_key(self):
+        fprint = b"A5CA9D5515DC2CA73DF748CA5C2E46A0F53A76ED"
+        key_id = b"5C2E46A0F53A76ED"
+        short = b"F53A76ED"
+        different = b"A5CA9D55"
+
+        self.assertTrue(same_key(fprint, fprint))
+        self.assertTrue(same_key(fprint, key_id))
+        self.assertTrue(same_key(fprint, short))
+
+        self.assertTrue(same_key(key_id, fprint))
+        self.assertTrue(same_key(key_id, key_id))
+        self.assertTrue(same_key(key_id, short))
+
+        self.assertTrue(same_key(short, fprint))
+        self.assertTrue(same_key(short, key_id))
+        self.assertTrue(same_key(short, short))
+
+        self.assertFalse(same_key(fprint, different))
+        self.assertFalse(same_key(key_id, different))
+        self.assertFalse(same_key(short, different))
+        self.assertFalse(same_key(different, fprint))
+        self.assertFalse(same_key(different, key_id))
+        self.assertFalse(same_key(different, short))
 
 
 class ParseTestCase(TestCase):

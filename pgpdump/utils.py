@@ -95,3 +95,13 @@ def get_key_id(data, offset):
     string.'''
     key_id = binascii.hexlify(data[offset:offset + 8])
     return key_id.upper()
+
+def same_key(key_a, key_b):
+    '''Comparison function for key ID or fingerprint strings, taking into
+    account varying length.'''
+    if len(key_a) == len(key_b):
+        return key_a == key_b
+    elif len(key_a) < len(key_b):
+        return key_b.endswith(key_a)
+    else:
+        return key_a.endswith(key_b)
