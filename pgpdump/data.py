@@ -80,7 +80,7 @@ class AsciiData(BinaryData):
         block, in the form '=alph', where there are always 4 ASCII characters
         correspnding to 3 digits (24 bits). Look for this special case.'''
         # don't let newlines trip us up
-        data = data.strip()
+        data = data.rstrip()
         # this funkyness makes it work without changes in Py2 and Py3
         if data[-5] in (b'=', ord(b'=')):
             # CRC is returned without the = and converted to a decimal

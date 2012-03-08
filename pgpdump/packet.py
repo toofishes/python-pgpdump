@@ -74,6 +74,7 @@ class Packet(object):
 
 
 class AlgoLookup(object):
+    '''Mixin class containing algorithm lookup methods.'''
     @staticmethod
     def lookup_pub_algorithm(alg):
         algorithms = {
@@ -160,9 +161,8 @@ class SignaturePacket(Packet, AlgoLookup):
             self.sig_type = self.lookup_signature_type(self.data[offset])
             offset += 1
 
-            ts = _int4(self.data, offset)
-            self.creation_time = ts
-            self.datetime = datetime.utcfromtimestamp(ts)
+            self.creation_time = _int4(self.data, offset)
+            self.datetime = datetime.utcfromtimestamp(self.creation_time)
             offset += 4
 
             self.key_id = _int8(self.data, offset)
@@ -233,9 +233,8 @@ class SignaturePacket(Packet, AlgoLookup):
             subpacket = SignatureSubpacket(subtype, name,
                     hashed, critical, sub_data)
             if subpacket.raw == 2:
-                ts = _int4(subpacket.data, 0)
-                self.creation_time = ts
-                self.datetime = datetime.utcfromtimestamp(ts)
+                self.creation_time = _int4(subpacket.data, 0)
+                self.datetime = datetime.utcfromtimestamp(self.creation_time)
             elif subpacket.raw == 16:
                 self.key_id = _int8(subpacket.data, 0)
             offset += sub_length
@@ -316,9 +315,8 @@ class PublicKeyPacket(Packet, AlgoLookup):
         self.pubkey_version = self.data[0]
         offset = 1
         if self.pubkey_version == 4:
-            ts = _int4(self.data, offset)
-            self.creation_time = ts
-            self.datetime = datetime.utcfromtimestamp(ts)
+            self.creation_time = _int4(self.data, offset)
+            self.datetime = datetime.utcfromtimestamp(self.creation_time)
             offset += 4
 
             self.raw_pub_algorithm = self.data[offset]
