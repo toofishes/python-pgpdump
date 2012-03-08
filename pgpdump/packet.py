@@ -298,6 +298,14 @@ class PublicKeyPacket(Packet, AlgoLookup):
                 self.mod, offset = get_mpi(self.data, offset)
                 self.exp, offset = get_mpi(self.data, offset)
 
+    def __repr__(self):
+        return "<%s: %s, length %d>" % (
+                self.__class__.__name__, self.pub_algorithm, self.length)
+
+
+class PublicSubkeyPacket(PublicKeyPacket):
+    pass
+
 
 class UserIDPacket(Packet):
     '''A User ID packet consists of UTF-8 text that is intended to represent
@@ -350,7 +358,7 @@ TAG_TYPES = {
     11: ("Literal Data Packet", None),
     12: ("Trust Packet", TrustPacket),
     13: ("User ID Packet", UserIDPacket),
-    14: ("Public Subkey Packet", None),
+    14: ("Public Subkey Packet", PublicSubkeyPacket),
     17: ("User Attribute Packet", None),
     18: ("Symmetrically Encrypted and MDC Packet", None),
     19: ("Modification Detection Code Packet", None),
