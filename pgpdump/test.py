@@ -156,13 +156,16 @@ class PacketTestCase(TestCase):
         data = [
             ((0, 2),    [0x02]),
             ((0, 16),   [0x10]),
+            ((0, 100),  [0x64]),
             ((0, 166),  [0xa6]),
             ((0, 168),  [0xa8]),
+            ((1, 1723), [0xc5, 0xfb]),
             ((1, 3923), [0xce, 0x93]),
             ((1, 5119), [0xd3, 0x3f]),
             ((1, 6476), [0xd8, 0x8c]),
             ((4, 26306), [0xff, 0x00, 0x00, 0x66, 0xc2]),
             ((4, 26306), bytearray(b'\xff\x00\x00\x66\xc2')),
+            ((4, 100000), [0xff, 0x00, 0x01, 0x86, 0xa0]),
         ]
         for expected, invals in data:
             self.assertEqual(expected, new_tag_length(invals))
