@@ -73,6 +73,36 @@ gMsAoLGOjudliDT9u0UqxN9KeJ22Jdne
                 0x5C2E46A0F53A76ED, 17, 2)
         self.assertEqual(2, len(sig_packet.subpackets))
 
+    def test_parse_bad_crc(self):
+        asc_data = b'''
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.11 (GNU/Linux)
+
+iEYEABECAAYFAk6neOwACgkQXC5GoPU6du23AQCgghWjIFgBazXWIZNj4PGnkuYv
+gMsAoLGOjudliDT9u0UqxN9KeJ22JdnX
+=KYol
+-----END PGP SIGNATURE-----'''
+        self.assertRaises(Exception, AsciiData, asc_data)
+
+    def test_parse_v3_sig(self):
+        asc_data = b'''
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2.0.18 (GNU/Linux)
+
+iD8DBQBPWDfGXC5GoPU6du0RAq6XAKC3TejpiBsu3pGF37Q9Id/vPzoFlwCgtwXE
+E/GGdt/Cn5Rr1G933H9nwxo=
+=aJ6u
+-----END PGP SIGNATURE-----'''
+        data = AsciiData(asc_data)
+        packets = list(data.packets())
+        self.assertEqual(1, len(packets))
+        sig_packet = packets[0]
+        self.assertFalse(sig_packet.new)
+        self.check_sig_packet(sig_packet, 63, 3, 0, 1331181510,
+                0x5C2E46A0F53A76ED, 17, 2)
+        self.assertEqual(b'\xae\x97', sig_packet.hash2)
+        self.assertEqual(0, len(sig_packet.subpackets))
+
     def test_parse_linus_binary(self):
         with open('linus.gpg', 'rb') as keyfile:
             rawdata = keyfile.read()
@@ -108,27 +138,32 @@ gMsAoLGOjudliDT9u0UqxN9KeJ22Jdne
                     self.assertEqual(3, len(packet.subpackets))
 
             elif isinstance(packet, PublicSubkeyPacket):
+                seen += 1
                 self.assertEqual(4, packet.pubkey_version)
                 self.assertEqual(1316554898, packet.creation_time)
                 self.assertEqual(1, packet.raw_pub_algorithm)
+                self.assertIsNotNone(packet.modulus)
                 self.assertEqual(65537, packet.exponent)
                 self.assertEqual("012F54CA", packet.fingerprint[32:])
 
             elif isinstance(packet, PublicKeyPacket):
+                seen += 1
                 self.assertEqual(4, packet.pubkey_version)
                 self.assertEqual(1316554898, packet.creation_time)
                 self.assertEqual(1, packet.raw_pub_algorithm)
+                self.assertIsNotNone(packet.modulus)
                 self.assertEqual(65537, packet.exponent)
                 self.assertEqual("ABAF11C65A2970B130ABE3C479BE3E4300411886",
                         packet.fingerprint)
                 self.assertEqual(0x79BE3E4300411886, packet.key_id)
 
             elif isinstance(packet, UserIDPacket):
+                seen += 1
                 self.assertEqual("Linus Torvalds", packet.user_name)
                 self.assertEqual("torvalds@linux-foundation.org",
                         packet.user_email)
 
-        self.assertEqual(3, seen)
+        self.assertEqual(6, seen)
 
     def test_parse_linus_ascii(self):
         with open('linus.asc', 'rb') as keyfile:
@@ -139,6 +174,46 @@ gMsAoLGOjudliDT9u0UqxN9KeJ22Jdne
         # Note: we could do all the checks we did above in the binary version,
         # but this is really only trying to test the AsciiData extras, not the
         # full stack.
+
+    def test_parse_dan(self):
+        '''This key has DSA and ElGamal keys, which Linus' does not have.'''
+        with open('dan.gpg', 'rb') as keyfile:
+            rawdata = keyfile.read()
+        data = BinaryData(rawdata)
+        packets = list(data.packets())
+        self.assertEqual(9, len(packets))
+        # 3 user ID packets
+        self.assertEqual(3, sum(1 for p in packets if p.raw == 13))
+        # 4 signature packets
+        self.assertEqual(4, sum(1 for p in packets if p.raw == 2))
+
+        seen = 0
+        for packet in packets:
+            self.assertFalse(packet.new)
+
+            if isinstance(packet, PublicSubkeyPacket):
+                seen += 1
+                self.assertEqual(16, packet.raw_pub_algorithm)
+                self.assertEqual("elgamal", packet.pub_algorithm_type)
+                self.assertIsNotNone(packet.prime)
+                self.assertIsNone(packet.group_order)
+                self.assertIsNotNone(packet.group_gen)
+                self.assertIsNotNone(packet.key_value)
+                self.assertEqual("C3751D38", packet.fingerprint[32:])
+
+            elif isinstance(packet, PublicKeyPacket):
+                seen += 1
+                self.assertEqual(17, packet.raw_pub_algorithm)
+                self.assertEqual("dsa", packet.pub_algorithm_type)
+                self.assertIsNotNone(packet.prime)
+                self.assertIsNotNone(packet.group_order)
+                self.assertIsNotNone(packet.group_gen)
+                self.assertIsNotNone(packet.key_value)
+                self.assertEqual("A5CA9D5515DC2CA73DF748CA5C2E46A0F53A76ED",
+                        packet.fingerprint)
+
+        self.assertEqual(2, seen)
+
 
 class PacketTestCase(TestCase):
     def test_lookup_type(self):
@@ -152,6 +227,8 @@ class PacketTestCase(TestCase):
             ((2, 525),  [0xb9, 0x02, 0x0d]),
             ((2, 1037), [0xb9, 0x04, 0x0d]),
             ((2, 1037), bytearray(b'\xb9\x04\x0d')),
+            ((2, 5119), [0xb9, 0x13, 0xff]),
+            ((4, 100000), [0xba, 0x00, 0x01, 0x86, 0xa0]),
         ]
         for expected, invals in data:
             self.assertEqual(expected, old_tag_length(invals, 0))
