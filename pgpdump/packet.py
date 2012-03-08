@@ -11,9 +11,6 @@ OLD_LEN_MASK    = 0x03
 OLD_TAG_SHIFT   = 2
 TAG_COMPRESSED  = 8
 
-CRITICAL_BIT    = 0x80
-CRITICAL_MASK   = 0x7f
-
 
 class Packet(object):
     '''The base packet object containing various fields pulled from the packet
@@ -182,6 +179,9 @@ class SignaturePacket(Packet, AlgoLookup):
             self.hash2 = self.data[offset:offset + 2]
             offset += 2
 
+    CRITICAL_BIT = 0x80
+    CRITICAL_MASK = 0x7f
+
     def parse_subpackets(self, outer_offset, outer_length, hashed=False):
         offset = outer_offset
         while offset < outer_offset + outer_length:
@@ -195,8 +195,8 @@ class SignaturePacket(Packet, AlgoLookup):
             subtype = self.data[offset]
             offset += 1
 
-            critical = bool(subtype & CRITICAL_BIT)
-            subtype &= CRITICAL_MASK
+            critical = bool(subtype & self.CRITICAL_BIT)
+            subtype &= self.CRITICAL_MASK
             name = self.lookup_signature_subtype(subtype)
 
             sub_data = self.data[offset:offset + sub_length]
