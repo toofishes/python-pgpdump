@@ -1,0 +1,5 @@
+include COPYRIGHT
+include README.md
+include dan.gpg
+include linus.asc
+include linus.gpg
