@@ -328,9 +328,9 @@ class PublicKeyPacket(Packet, AlgoLookup):
                 self.key_value, offset = get_mpi(self.data, offset)
 
     def __repr__(self):
-        return "<%s: 0x%X, %s, length %d>" % (
-                self.__class__.__name__, self.key_id, self.pub_algorithm,
-                self.length)
+        return "<%s: 0x%s, %s, length %d>" % (
+                self.__class__.__name__, self.key_id.decode('ascii'),
+                self.pub_algorithm, self.length)
 
 
 class PublicSubkeyPacket(PublicKeyPacket):
