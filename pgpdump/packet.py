@@ -362,6 +362,43 @@ class UserIDPacket(Packet):
                 self.length)
 
 
+class UserAttributePacket(Packet):
+    def __init__(self, *args, **kwargs):
+        self.user = None
+        self.user_name = None
+        self.user_email = None
+        self.image_format = None
+        self.image_data = None
+        super(UserAttributePacket, self).__init__(*args, **kwargs)
+
+    def parse(self):
+        offset = sub_offset = sub_length = 0
+        while offset + sub_length < len(self.data):
+            # each subpacket is [variable length] [subtype] [data]
+            sub_offset, sub_length = new_tag_length(self.data[offset:])
+            # sub_length includes the subtype single byte, knock that off
+            sub_length -= 1
+            # initial length bytes
+            offset += 1 + sub_offset
+
+            sub_type = self.data[offset]
+            offset += 1
+
+            # there is only one currently known type- images (1)
+            if sub_type == 1:
+                # the only little-endian encoded value in OpenPGP
+                hdr_size = self.data[offset] + (self.data[offset + 1] << 8)
+                hdr_version = self.data[offset + 2]
+                img_format = self.data[offset + 3]
+                offset += hdr_size
+
+                self.image_data = self.data[offset:]
+                if img_format == 1:
+                    self.image_type = "jpeg"
+                else:
+                    self.image_type = "unknown"
+
+
 class TrustPacket(Packet):
     def __init__(self, *args, **kwargs):
         self.trust = None
@@ -391,7 +428,7 @@ TAG_TYPES = {
     12: ("Trust Packet", TrustPacket),
     13: ("User ID Packet", UserIDPacket),
     14: ("Public Subkey Packet", PublicSubkeyPacket),
-    17: ("User Attribute Packet", None),
+    17: ("User Attribute Packet", UserAttributePacket),
     18: ("Symmetrically Encrypted and MDC Packet", None),
     19: ("Modification Detection Code Packet", None),
     60: ("Private", None),
