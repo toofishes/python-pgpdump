@@ -1,4 +1,5 @@
 from datetime import datetime
+import hashlib
 import re
 
 from .utils import get_int2, get_int4, get_int8, get_mpi
@@ -273,18 +274,32 @@ class SignaturePacket(Packet, AlgoLookup):
 class PublicKeyPacket(Packet, AlgoLookup):
     def __init__(self, *args, **kwargs):
         self.pubkey_version = None
+        self.fingerprint = None
+        self.key_id = None
         self.creation_time = None
         self.datetime = None
         self.raw_pub_algorithm = None
         self.pub_algorithm = None
-        self.mod = None
-        self.exp = None
+        self.pub_algorithm_type = None
+        self.modulus = None
+        self.exponent = None
+        self.prime = None
+        self.group_order = None
+        self.group_gen = None
+        self.key_value = None
         super(PublicKeyPacket, self).__init__(*args, **kwargs)
 
     def parse(self):
         self.pubkey_version = self.data[0]
         offset = 1
         if self.pubkey_version == 4:
+            sha1 = hashlib.sha1()
+            seed_bytes = (0x99, (self.length >> 8) & 0xff, self.length & 0xff)
+            sha1.update(bytearray(seed_bytes))
+            sha1.update(self.data)
+            self.fingerprint = sha1.hexdigest().upper()
+            self.key_id = get_int8(bytearray(sha1.digest()), 12)
+
             self.creation_time = get_int4(self.data, offset)
             self.datetime = datetime.utcfromtimestamp(self.creation_time)
             offset += 4
@@ -293,17 +308,34 @@ class PublicKeyPacket(Packet, AlgoLookup):
             self.pub_algorithm = self.lookup_pub_algorithm(self.data[offset])
             offset += 1
 
-            #If RSA:
             if self.raw_pub_algorithm in (1, 2, 3):
-                self.mod, offset = get_mpi(self.data, offset)
-                self.exp, offset = get_mpi(self.data, offset)
+                self.pub_algorithm_type = "rsa"
+                # n, e
+                self.modulus, offset = get_mpi(self.data, offset)
+                self.exponent, offset = get_mpi(self.data, offset)
+            elif self.raw_pub_algorithm == 17:
+                self.pub_algorithm_type = "dsa"
+                # p, q, g, y
+                self.prime, offset = get_mpi(self.data, offset)
+                self.group_order, offset = get_mpi(self.data, offset)
+                self.group_gen, offset = get_mpi(self.data, offset)
+                self.key_value, offset = get_mpi(self.data, offset)
+            elif self.raw_pub_algorithm == 16:
+                self.pub_algorithm_type = "elgamal"
+                # p, g, y
+                self.prime, offset = get_mpi(self.data, offset)
+                self.group_gen, offset = get_mpi(self.data, offset)
+                self.key_value, offset = get_mpi(self.data, offset)
 
     def __repr__(self):
-        return "<%s: %s, length %d>" % (
-                self.__class__.__name__, self.pub_algorithm, self.length)
+        return "<%s: 0x%X, %s, length %d>" % (
+                self.__class__.__name__, self.key_id, self.pub_algorithm,
+                self.length)
 
 
 class PublicSubkeyPacket(PublicKeyPacket):
+    '''A Public-Subkey packet (tag 14) has exactly the same format as a
+    Public-Key packet, but denotes a subkey.'''
     pass
 
 
@@ -425,8 +457,8 @@ def construct_packet(data):
         partial = False
     offset += 1
     name, PacketType = TAG_TYPES.get(tag, ("Unknown", None))
-    packet_data = data[offset:offset + length]
     total_length = offset + length
+    packet_data = data[offset:total_length]
     if not PacketType:
         PacketType = Packet
     packet = PacketType(tag, name, new, partial, packet_data)

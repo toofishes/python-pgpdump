@@ -107,19 +107,23 @@ gMsAoLGOjudliDT9u0UqxN9KeJ22Jdne
                             0x79BE3E4300411886, 1, 2)
                     self.assertEqual(3, len(packet.subpackets))
 
-            if isinstance(packet, PublicKeyPacket):
+            elif isinstance(packet, PublicSubkeyPacket):
                 self.assertEqual(4, packet.pubkey_version)
                 self.assertEqual(1316554898, packet.creation_time)
                 self.assertEqual(1, packet.raw_pub_algorithm)
-                self.assertEqual(65537, packet.exp)
+                self.assertEqual(65537, packet.exponent)
+                self.assertEqual("012F54CA", packet.fingerprint[32:])
 
-            if isinstance(packet, PublicSubkeyPacket):
+            elif isinstance(packet, PublicKeyPacket):
                 self.assertEqual(4, packet.pubkey_version)
                 self.assertEqual(1316554898, packet.creation_time)
                 self.assertEqual(1, packet.raw_pub_algorithm)
-                self.assertEqual(65537, packet.exp)
+                self.assertEqual(65537, packet.exponent)
+                self.assertEqual("ABAF11C65A2970B130ABE3C479BE3E4300411886",
+                        packet.fingerprint)
+                self.assertEqual(0x79BE3E4300411886, packet.key_id)
 
-            if isinstance(packet, UserIDPacket):
+            elif isinstance(packet, UserIDPacket):
                 self.assertEqual("Linus Torvalds", packet.user_name)
                 self.assertEqual("torvalds@linux-foundation.org",
                         packet.user_email)
