@@ -3,7 +3,7 @@ from distutils.core import setup
 from pgpdump import __version__, __author__
 
 classifiers = [
-    'Development Status :: 3 - Alpha',
+    'Development Status :: 4 - Beta',
     'Intended Audience :: Developers',
     'License :: OSI Approved :: BSD License',
     'Programming Language :: Python',
