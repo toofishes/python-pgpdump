@@ -1,9 +1,17 @@
 import base64
+from itertools import repeat
 from unittest import TestCase
 
 from pgpdump import AsciiData, BinaryData
 from pgpdump.packet import (TAG_TYPES, SignaturePacket, PublicKeyPacket,
         UserIDPacket, old_tag_length, new_tag_length, _mpi)
+from pgpdump.utils import crc24
+
+class UtilsTestCase(TestCase):
+    def test_crc24(self):
+        self.assertEqual(0xb704ce, crc24(bytearray(b"")))
+        self.assertEqual(0x21cf02, crc24(bytearray(b"123456789")))
+        self.assertEqual(0xe84567, crc24(repeat(0, 1024 * 1024)))
 
 class ParseTestCase(TestCase):
     def test_parse_exception(self):

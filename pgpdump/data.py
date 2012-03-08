@@ -1,6 +1,7 @@
 from base64 import b64decode
 
 from .packet import construct_packet
+from .utils import crc24
 
 class BinaryData(object):
     '''The base object used for extracting PGP data packets. This expects fully
@@ -43,7 +44,7 @@ class AsciiData(BinaryData):
         data = bytearray(b64decode(data))
         if known_crc:
             # verify it if we could find it
-            actual_crc = self.crc24(data)
+            actual_crc = crc24(data)
             if known_crc != actual_crc:
                 raise Exception("CRC failure: known 0x%x, actual 0x%x" % (
                     known_crc, actual_crc))
@@ -90,21 +91,3 @@ class AsciiData(BinaryData):
             crc = (crc[0] << 16) + (crc[1] << 8) + crc[2]
             return (data[:-5], crc)
         return (data, None)
-
-    @staticmethod
-    def crc24(data):
-        '''Implementation of the OpenPGP CRC-24 algorithm.'''
-        # CRC-24-Radix-64
-        # x24 + x23 + x18 + x17 + x14 + x11 + x10 + x7 + x6
-        #   + x5 + x4 + x3 + x + 1 (OpenPGP)
-        # 0x864CFB / 0xDF3261 / 0xC3267D
-        crc = 0x00b704ce
-        for byte in data:
-            crc ^= (byte << 16)
-            # optimization: don't have to call range(8) here
-            for _ in (0, 1, 2, 3, 4, 5, 6, 7):
-                crc <<= 1
-                if crc & 0x01000000:
-                    crc ^= 0x00864cfb
-            crc &= 0x00ffffff
-        return crc
