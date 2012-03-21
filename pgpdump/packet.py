@@ -4,14 +4,6 @@ import re
 
 from .utils import get_int2, get_int4, get_mpi, get_key_id
 
-NEW_TAG_FLAG    = 0x40
-TAG_MASK        = 0x3f
-PARTIAL_MASK    = 0x1f
-
-OLD_LEN_MASK    = 0x03
-OLD_TAG_SHIFT   = 2
-TAG_COMPRESSED  = 8
-
 
 class Packet(object):
     '''The base packet object containing various fields pulled from the packet
@@ -454,7 +446,8 @@ def new_tag_length(data):
         offset = 4
         length = get_int4(data, 1)
     else:
-        length = 1 << (first & PARTIAL_MASK)
+        # partial length
+        length = 1 << (first & 0x1f)
 
     return (offset, length)
 
@@ -463,7 +456,7 @@ def old_tag_length(data, tag):
     '''takes the data as a list of int/longs as input;
     also the shifted old tag. Returns (offset, length).'''
     offset = length = 0
-    temp_len = data[0] & OLD_LEN_MASK
+    temp_len = data[0] & 0x03
 
     if temp_len == 0:
         offset = 1
@@ -475,7 +468,8 @@ def old_tag_length(data, tag):
         offset = 4
         length = get_int4(data, 1)
     elif temp_len == 3:
-        if tag == TAG_COMPRESSED:
+        # compressed
+        if tag == 8:
             length = 0
         else:
             length = -1
@@ -484,14 +478,14 @@ def old_tag_length(data, tag):
 
 
 def construct_packet(data):
-    tag = data[0] & TAG_MASK
-    new = bool(data[0] & NEW_TAG_FLAG)
+    tag = data[0] & 0x3f
+    new = bool(data[0] & 0x40)
     if new:
         offset, length = new_tag_length(data[1:])
         offset += 1
         partial = (data[0] >= 224 or data[0] < 255)
     else:
-        tag >>= OLD_TAG_SHIFT
+        tag >>= 2
         offset, length = old_tag_length(data, tag)
         if length == -1:
             length = len(data) - offset
