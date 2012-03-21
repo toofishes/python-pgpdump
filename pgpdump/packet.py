@@ -8,11 +8,10 @@ from .utils import get_int2, get_int4, get_mpi, get_key_id
 class Packet(object):
     '''The base packet object containing various fields pulled from the packet
     header as well as a slice of the packet data.'''
-    def __init__(self, raw, name, new, partial, data):
+    def __init__(self, raw, name, new, data):
         self.raw = raw
         self.name = name
         self.new = new
-        self.partial = partial
         self.length = len(data)
         self.data = data
 
@@ -180,9 +179,9 @@ class SignaturePacket(Packet, AlgoLookup):
         offset = outer_offset
         while offset < outer_offset + outer_length:
             # each subpacket is [variable length] [subtype] [data]
-            sub_offset, sub_length = new_tag_length(self.data[offset:])
-            # sub_length includes the subtype single byte, knock that off
-            sub_length -= 1
+            sub_offset, sub_len, sub_part = new_tag_length(self.data[offset:])
+            # sub_len includes the subtype single byte, knock that off
+            sub_len -= 1
             # initial length bytes
             offset += 1 + sub_offset
 
@@ -193,7 +192,7 @@ class SignaturePacket(Packet, AlgoLookup):
             subtype &= self.CRITICAL_MASK
             name = self.lookup_signature_subtype(subtype)
 
-            sub_data = self.data[offset:offset + sub_length]
+            sub_data = self.data[offset:offset + sub_len]
             subpacket = SignatureSubpacket(subtype, name,
                     hashed, critical, sub_data)
             if subpacket.raw == 2:
@@ -201,7 +200,7 @@ class SignaturePacket(Packet, AlgoLookup):
                 self.datetime = datetime.utcfromtimestamp(self.creation_time)
             elif subpacket.raw == 16:
                 self.key_id = get_key_id(subpacket.data, 0)
-            offset += sub_length
+            offset += sub_len
             self.subpackets.append(subpacket)
 
     @staticmethod
@@ -365,12 +364,12 @@ class UserAttributePacket(Packet):
         super(UserAttributePacket, self).__init__(*args, **kwargs)
 
     def parse(self):
-        offset = sub_offset = sub_length = 0
-        while offset + sub_length < len(self.data):
+        offset = sub_offset = sub_len = 0
+        while offset + sub_len < len(self.data):
             # each subpacket is [variable length] [subtype] [data]
-            sub_offset, sub_length = new_tag_length(self.data[offset:])
-            # sub_length includes the subtype single byte, knock that off
-            sub_length -= 1
+            sub_offset, sub_len, sub_part = new_tag_length(self.data[offset:])
+            # sub_len includes the subtype single byte, knock that off
+            sub_len -= 1
             # initial length bytes
             offset += 1 + sub_offset
 
@@ -432,10 +431,11 @@ TAG_TYPES = {
 
 
 def new_tag_length(data):
-    '''takes the data as a list of int/longs as input;
-    returns (offset, length).'''
+    '''Takes the data as a list of int/longs as input.
+    Returns (offset, length, partial).'''
     first = data[0]
     offset = length = 0
+    partial = False
 
     if first < 192:
         length = first
@@ -446,14 +446,15 @@ def new_tag_length(data):
         offset = 4
         length = get_int4(data, 1)
     else:
-        # partial length
+        # partial length, 224 <= l < 255
         length = 1 << (first & 0x1f)
+        partial = True
 
-    return (offset, length)
+    return (offset, length, partial)
 
 
 def old_tag_length(data, tag):
-    '''takes the data as a list of int/longs as input;
+    '''Takes the data as a list of int/longs as input;
     also the shifted old tag. Returns (offset, length).'''
     offset = length = 0
     temp_len = data[0] & 0x03
@@ -468,11 +469,7 @@ def old_tag_length(data, tag):
         offset = 4
         length = get_int4(data, 1)
     elif temp_len == 3:
-        # compressed
-        if tag == 8:
-            length = 0
-        else:
-            length = -1
+        length = -1
 
     return (offset, length)
 
@@ -481,9 +478,8 @@ def construct_packet(data):
     tag = data[0] & 0x3f
     new = bool(data[0] & 0x40)
     if new:
-        offset, length = new_tag_length(data[1:])
+        offset, length, partial = new_tag_length(data[1:])
         offset += 1
-        partial = (data[0] >= 224 or data[0] < 255)
     else:
         tag >>= 2
         offset, length = old_tag_length(data, tag)
@@ -496,5 +492,5 @@ def construct_packet(data):
     packet_data = data[offset:total_length]
     if not PacketType:
         PacketType = Packet
-    packet = PacketType(tag, name, new, partial, packet_data)
+    packet = PacketType(tag, name, new, packet_data)
     return (total_length, packet)
