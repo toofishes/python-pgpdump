@@ -90,11 +90,13 @@ def get_mpi(data, offset):
     offset += to_process
     return mpi, offset
 
+
 def get_key_id(data, offset):
     '''Pull eight bytes from data at offset and return as a 16-byte hex-encoded
     string.'''
     key_id = binascii.hexlify(data[offset:offset + 8])
     return key_id.upper()
+
 
 def same_key(key_a, key_b):
     '''Comparison function for key ID or fingerprint strings, taking into

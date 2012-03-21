@@ -3,6 +3,7 @@ from base64 import b64decode
 from .packet import construct_packet
 from .utils import crc24
 
+
 class BinaryData(object):
     '''The base object used for extracting PGP data packets. This expects fully
     binary data as input; such as that read from a .sig or .gpg file.'''
@@ -33,6 +34,7 @@ class BinaryData(object):
     def __repr__(self):
         return "<%s: length %d>" % (
                 self.__class__.__name__, self.length)
+
 
 class AsciiData(BinaryData):
     '''A wrapper class that supports ASCII-armored input. It searches for the

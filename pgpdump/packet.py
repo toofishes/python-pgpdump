@@ -93,6 +93,7 @@ class SignatureSubpacket(object):
         return "<%s: %slength %d>" % (
                 self.__class__.__name__, hashed, self.length)
 
+
 class SignaturePacket(Packet, AlgoLookup):
     def __init__(self, *args, **kwargs):
         self.hash_material = None
@@ -437,6 +438,7 @@ TAG_TYPES = {
     63: ("Private", None),
 }
 
+
 def new_tag_length(data):
     '''takes the data as a list of int/longs as input;
     returns (offset, length).'''
@@ -455,6 +457,7 @@ def new_tag_length(data):
         length = 1 << (first & PARTIAL_MASK)
 
     return (offset, length)
+
 
 def old_tag_length(data, tag):
     '''takes the data as a list of int/longs as input;
@@ -479,6 +482,7 @@ def old_tag_length(data, tag):
 
     return (offset, length)
 
+
 def construct_packet(data):
     tag = data[0] & TAG_MASK
     new = bool(data[0] & NEW_TAG_FLAG)
@@ -500,4 +504,3 @@ def construct_packet(data):
         PacketType = Packet
     packet = PacketType(tag, name, new, partial, packet_data)
     return (total_length, packet)
-

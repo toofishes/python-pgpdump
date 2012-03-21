@@ -2,6 +2,7 @@ import sys
 
 from . import AsciiData, BinaryData
 
+
 def parsefile(name):
     with open(name, 'rb') as infile:
         if name.endswith('.asc'):
@@ -14,9 +15,11 @@ def parsefile(name):
         print(packet)
     print(counter)
 
+
 def main():
     for filename in sys.argv[1:]:
         parsefile(filename)
+
 
 if __name__ == '__main__':
     main()
