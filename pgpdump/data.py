@@ -56,11 +56,17 @@ class AsciiData(BinaryData):
     def strip_magic(data):
         '''Strip away the '-----BEGIN PGP SIGNATURE-----' and related cruft so
         we can safely base64 decode the remainder.'''
+        idx = 0
         magic = b'-----BEGIN PGP '
-        #ignore = b'-----BEGIN PGP SIGNED '
+        ignore = b'-----BEGIN PGP SIGNED '
 
-        # find our magic string
-        idx = data.find(magic)
+        # find our magic string, skiping our ignored string
+        while True:
+            idx = data.find(magic, idx)
+            if data[idx:len(ignore)] != ignore:
+                break
+            idx += 1
+
         if idx >= 0:
             # find the start of the actual data. it always immediately follows
             # a blank line, meaning headers are done.
