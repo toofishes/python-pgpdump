@@ -453,9 +453,9 @@ def new_tag_length(data):
     return (offset, length, partial)
 
 
-def old_tag_length(data, tag):
-    '''Takes the data as a list of int/longs as input;
-    also the shifted old tag. Returns (offset, length).'''
+def old_tag_length(data):
+    '''Takes the data as a list of int/longs as input.
+    Returns (offset, length).'''
     offset = length = 0
     temp_len = data[0] & 0x03
 
@@ -469,7 +469,7 @@ def old_tag_length(data, tag):
         offset = 4
         length = get_int4(data, 1)
     elif temp_len == 3:
-        length = -1
+        length = len(data) - 1
 
     return (offset, length)
 
@@ -482,9 +482,7 @@ def construct_packet(data):
         offset += 1
     else:
         tag >>= 2
-        offset, length = old_tag_length(data, tag)
-        if length == -1:
-            length = len(data) - offset
+        offset, length = old_tag_length(data)
         partial = False
     offset += 1
     name, PacketType = TAG_TYPES.get(tag, ("Unknown", None))
