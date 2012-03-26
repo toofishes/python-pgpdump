@@ -49,9 +49,11 @@ def crc24(data):
     #   + x5 + x4 + x3 + x + 1 (OpenPGP)
     # 0x864CFB / 0xDF3261 / 0xC3267D
     crc = 0x00b704ce
+    # this saves a bunch of slower global accesses
+    crc_table = CRC24_TABLE
     for byte in data:
         tbl_idx = ((crc >> 16) ^ byte) & 0xff
-        crc = (CRC24_TABLE[tbl_idx] ^ (crc << 8)) & 0x00ffffff
+        crc = (crc_table[tbl_idx] ^ (crc << 8)) & 0x00ffffff
     return crc
 
 
