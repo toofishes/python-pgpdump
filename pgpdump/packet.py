@@ -349,16 +349,13 @@ class UserIDPacket(Packet):
             self.user_email = matches.group(2).strip()
 
     def __repr__(self):
-        return "<%s: %s (%s), length %d>" % (
+        return "<%s: %r (%r), length %d>" % (
                 self.__class__.__name__, self.user_name, self.user_email,
                 self.length)
 
 
 class UserAttributePacket(Packet):
     def __init__(self, *args, **kwargs):
-        self.user = None
-        self.user_name = None
-        self.user_email = None
         self.image_format = None
         self.image_data = None
         super(UserAttributePacket, self).__init__(*args, **kwargs)
