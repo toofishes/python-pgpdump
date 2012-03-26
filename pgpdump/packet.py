@@ -34,36 +34,38 @@ class Packet(object):
 
 class AlgoLookup(object):
     '''Mixin class containing algorithm lookup methods.'''
-    @staticmethod
-    def lookup_pub_algorithm(alg):
-        algorithms = {
-            1:  "RSA Encrypt or Sign",
-            2:  "RSA Encrypt-Only",
-            3:  "RSA Sign-Only",
-            16: "ElGamal Encrypt-Only",
-            17: "DSA Digital Signature Algorithm",
-            18: "Elliptic Curve",
-            19: "ECDSA",
-            20: "Formerly ElGamal Encrypt or Sign",
-            21: "Diffie-Hellman",
-        }
-        return algorithms.get(alg, "Unknown")
+    pub_algorithms = {
+        1:  "RSA Encrypt or Sign",
+        2:  "RSA Encrypt-Only",
+        3:  "RSA Sign-Only",
+        16: "ElGamal Encrypt-Only",
+        17: "DSA Digital Signature Algorithm",
+        18: "Elliptic Curve",
+        19: "ECDSA",
+        20: "Formerly ElGamal Encrypt or Sign",
+        21: "Diffie-Hellman",
+    }
 
-    @staticmethod
-    def lookup_hash_algorithm(alg):
-        reserved_values = (4, 5, 6, 7)
-        algorithms = {
-            1:  "MD5",
-            2:  "SHA1",
-            3:  "RIPEMD160",
-            8:  "SHA256",
-            9:  "SHA384",
-            10: "SHA512",
-            11: "SHA224",
-        }
-        if alg in reserved_values:
+    @classmethod
+    def lookup_pub_algorithm(cls, alg):
+        return cls.pub_algorithms.get(alg, "Unknown")
+
+    hash_algorithms = {
+        1:  "MD5",
+        2:  "SHA1",
+        3:  "RIPEMD160",
+        8:  "SHA256",
+        9:  "SHA384",
+        10: "SHA512",
+        11: "SHA224",
+    }
+
+    @classmethod
+    def lookup_hash_algorithm(cls, alg):
+        # reserved values check
+        if alg in (4, 5, 6, 7):
             return "Reserved"
-        return algorithms.get(alg, "Unknown")
+        return cls.hash_algorithms.get(alg, "Unknown")
 
 
 class SignatureSubpacket(object):
@@ -203,59 +205,61 @@ class SignaturePacket(Packet, AlgoLookup):
             offset += sub_len
             self.subpackets.append(subpacket)
 
-    @staticmethod
-    def lookup_signature_type(typ):
-        sig_types = {
-            0x00: "Signature of a binary document",
-            0x01: "Signature of a canonical text document",
-            0x02: "Standalone signature",
-            0x10: "Generic certification of a User ID and Public Key packet",
-            0x11: "Persona certification of a User ID and Public Key packet",
-            0x12: "Casual certification of a User ID and Public Key packet",
-            0x13: "Positive certification of a User ID and Public Key packet",
-            0x18: "Subkey Binding Signature",
-            0x19: "Primary Key Binding Signature",
-            0x1f: "Signature directly on a key",
-            0x20: "Key revocation signature",
-            0x28: "Subkey revocation signature",
-            0x30: "Certification revocation signature",
-            0x40: "Timestamp signature",
-            0x50: "Third-Party Confirmation signature",
-        }
-        return sig_types.get(typ, "Unknown")
+    sig_types = {
+        0x00: "Signature of a binary document",
+        0x01: "Signature of a canonical text document",
+        0x02: "Standalone signature",
+        0x10: "Generic certification of a User ID and Public Key packet",
+        0x11: "Persona certification of a User ID and Public Key packet",
+        0x12: "Casual certification of a User ID and Public Key packet",
+        0x13: "Positive certification of a User ID and Public Key packet",
+        0x18: "Subkey Binding Signature",
+        0x19: "Primary Key Binding Signature",
+        0x1f: "Signature directly on a key",
+        0x20: "Key revocation signature",
+        0x28: "Subkey revocation signature",
+        0x30: "Certification revocation signature",
+        0x40: "Timestamp signature",
+        0x50: "Third-Party Confirmation signature",
+    }
 
-    @staticmethod
-    def lookup_signature_subtype(typ):
-        reserved_types = (0, 1, 8, 13, 14, 15, 17, 18, 19)
-        subpacket_types = {
-            2:  "signature creation time",
-            3:  "signature expiration time",
-            4:  "exportable certification",
-            5:  "trust signature",
-            6:  "regular expression",
-            7:  "revocable",
-            9:  "key expiration time",
-            10: "additional decryption key",
-            11: "preferred symmetric algorithms",
-            12: "revocation key",
-            16: "issuer key ID",
-            20: "notation data",
-            21: "preferred hash algorithms",
-            22: "preferred compression algorithms",
-            23: "key server preferences",
-            24: "preferred key server",
-            25: "primary User ID",
-            26: "policy URL",
-            27: "key flags",
-            28: "signer's User ID",
-            29: "reason for revocation",
-            30: "features",
-            31: "signature target",
-            32: "embedded signature",
-        }
-        if typ in reserved_types:
+    @classmethod
+    def lookup_signature_type(cls, typ):
+        return cls.sig_types.get(typ, "Unknown")
+
+    subpacket_types = {
+        2:  "signature creation time",
+        3:  "signature expiration time",
+        4:  "exportable certification",
+        5:  "trust signature",
+        6:  "regular expression",
+        7:  "revocable",
+        9:  "key expiration time",
+        10: "additional decryption key",
+        11: "preferred symmetric algorithms",
+        12: "revocation key",
+        16: "issuer key ID",
+        20: "notation data",
+        21: "preferred hash algorithms",
+        22: "preferred compression algorithms",
+        23: "key server preferences",
+        24: "preferred key server",
+        25: "primary User ID",
+        26: "policy URL",
+        27: "key flags",
+        28: "signer's User ID",
+        29: "reason for revocation",
+        30: "features",
+        31: "signature target",
+        32: "embedded signature",
+    }
+
+    @classmethod
+    def lookup_signature_subtype(cls, typ):
+        # reserved values check
+        if typ in (0, 1, 8, 13, 14, 15, 17, 18, 19):
             return "reserved"
-        return subpacket_types.get(typ, "unknown")
+        return cls.subpacket_types.get(typ, "unknown")
 
     def __repr__(self):
         return "<%s: %s, %s, length %d>" % (
