@@ -7,7 +7,7 @@ from unittest import TestCase
 from pgpdump import AsciiData, BinaryData
 from pgpdump.packet import (TAG_TYPES, SignaturePacket, PublicKeyPacket,
         PublicSubkeyPacket, UserIDPacket, old_tag_length, new_tag_length)
-from pgpdump.utils import crc24, get_mpi, get_key_id, same_key
+from pgpdump.utils import crc24, get_int8, get_mpi, get_key_id, same_key
 
 
 def load_data(filename):
@@ -22,6 +22,17 @@ class UtilsTestCase(TestCase):
         self.assertEqual(0xb704ce, crc24(bytearray(b"")))
         self.assertEqual(0x21cf02, crc24(bytearray(b"123456789")))
         self.assertEqual(0xe84567, crc24(repeat(0, 1024 * 1024)))
+
+    # get_int2, get_int4 are tested plenty by actual code
+
+    def test_int8(self):
+        data = [
+            (0, [0x00] * 8),
+            (0x0a0b0c0d, (0x00, 0x00, 0x00, 0x00, 0x0a, 0x0b, 0x0c, 0x0d)),
+            (0x0a0b0c0d << 32, bytearray(b'\x0a\x0b\x0c\x0d\x00\x00\x00\x00')),
+        ]
+        for expected, invals in data:
+            self.assertEqual(expected, get_int8(invals, 0))
 
     def test_mpi(self):
         data = [
