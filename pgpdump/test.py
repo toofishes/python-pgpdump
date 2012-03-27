@@ -54,9 +54,17 @@ class UtilsTestCase(TestCase):
 
 
 class ParseTestCase(TestCase):
-    def test_parse_exception(self):
+    def test_parse_empty(self):
         with self.assertRaises(Exception):
             BinaryData(None)
+
+    def test_parse_short(self):
+        with self.assertRaises(Exception):
+            BinaryData([0x00])
+
+    def test_parse_invalid(self):
+        with self.assertRaises(Exception):
+            BinaryData([0x00, 0x00])
 
     def check_sig_packet(self, packet, length, version, typ,
             creation_time, key_id, pub_alg, hash_alg):
