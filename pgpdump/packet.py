@@ -357,6 +357,7 @@ class UserIDPacket(Packet):
 
 class UserAttributePacket(Packet):
     def __init__(self, *args, **kwargs):
+        self.raw_image_format = None
         self.image_format = None
         self.image_data = None
         super(UserAttributePacket, self).__init__(*args, **kwargs)
@@ -379,14 +380,14 @@ class UserAttributePacket(Packet):
                 # the only little-endian encoded value in OpenPGP
                 hdr_size = self.data[offset] + (self.data[offset + 1] << 8)
                 hdr_version = self.data[offset + 2]
-                img_format = self.data[offset + 3]
+                self.raw_image_format = self.data[offset + 3]
                 offset += hdr_size
 
                 self.image_data = self.data[offset:]
-                if img_format == 1:
-                    self.image_type = "jpeg"
+                if self.raw_image_format == 1:
+                    self.image_format = "jpeg"
                 else:
-                    self.image_type = "unknown"
+                    self.image_format = "unknown"
 
 
 class TrustPacket(Packet):
