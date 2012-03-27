@@ -278,6 +278,28 @@ E/GGdt/Cn5Rr1G933H9nwxo=
 
         self.assertEqual(2, seen)
 
+    def test_parse_junio(self):
+        '''This key has a single user attribute packet, which also uses the new
+        size format on the outer packet, which is rare.'''
+        with open('junio.gpg', 'rb') as keyfile:
+            rawdata = keyfile.read()
+        data = BinaryData(rawdata)
+        packets = list(data.packets())
+        self.assertEqual(13, len(packets))
+        # 3 user ID packets
+        self.assertEqual(4, sum(1 for p in packets if p.raw == 13))
+        # 4 signature packets
+        self.assertEqual(6, sum(1 for p in packets if p.raw == 2))
+        # 1 public subkey packet
+        self.assertEqual(1, sum(1 for p in packets if p.raw == 14))
+        # 1 user attribute packet
+        self.assertEqual(1, sum(1 for p in packets if p.raw == 17))
+
+        # check the user attribute packet
+        ua_packet = [p for p in packets if p.raw == 17][0]
+        self.assertEqual("jpeg", ua_packet.image_format)
+        self.assertEqual(1513, len(ua_packet.image_data))
+
 
 class PacketTestCase(TestCase):
     def test_lookup_type(self):
