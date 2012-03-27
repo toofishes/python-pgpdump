@@ -71,6 +71,15 @@ class ParseTestCase(TestCase):
         self.assertEqual(pub_alg, packet.raw_pub_algorithm)
         self.assertEqual(hash_alg, packet.raw_hash_algorithm)
 
+        # test some of the lazy lookup methods
+        if typ == 0x18:
+            self.assertEqual("Subkey Binding Signature", packet.sig_type)
+        if pub_alg == 17:
+            self.assertEqual("DSA Digital Signature Algorithm",
+                    packet.pub_algorithm)
+        if hash_alg == 2:
+            self.assertEqual("SHA1", packet.hash_algorithm)
+
     def test_parse_single_sig_packet(self):
         base64_sig = b"iEYEABECAAYFAk6A4a4ACgkQXC5GoPU6du1ATACgodGyQne3Rb7"\
                 b"/eHBMRdau1KNSgZYAoLXRWt2G2wfp7haTBjJDFXMGsIMi"
@@ -83,6 +92,8 @@ class ParseTestCase(TestCase):
         self.check_sig_packet(sig_packet, 70, 4, 0, 1317069230,
                 b"5C2E46A0F53A76ED", 17, 2)
         self.assertEqual(2, len(sig_packet.subpackets))
+        self.assertEqual(["Signature Creation Time","Issuer"],
+                [sp.name for sp in sig_packet.subpackets])
 
     def test_parse_ascii_sig_packet(self):
         asc_data = b'''
@@ -180,6 +191,7 @@ E/GGdt/Cn5Rr1G933H9nwxo=
                 self.assertEqual(4, packet.pubkey_version)
                 self.assertEqual(1316554898, packet.creation_time)
                 self.assertEqual(1, packet.raw_pub_algorithm)
+                self.assertEqual("RSA Encrypt or Sign", packet.pub_algorithm)
                 self.assertIsNotNone(packet.modulus)
                 self.assertEqual(65537, packet.exponent)
                 self.assertEqual(b"ABAF11C65A2970B130ABE3C479BE3E4300411886",
