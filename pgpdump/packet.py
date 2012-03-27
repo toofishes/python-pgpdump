@@ -432,8 +432,8 @@ TAG_TYPES = {
 
 
 def new_tag_length(data, start):
-    '''Takes the data as a list of int/longs as input.
-    Returns (offset, length, partial).'''
+    '''Takes a bytearray of data as input, as well as an offset of where to
+    look. Returns a derived (offset, length, partial) tuple.'''
     first = data[start]
     offset = length = 0
     partial = False
@@ -455,8 +455,8 @@ def new_tag_length(data, start):
 
 
 def old_tag_length(data, start):
-    '''Takes the data as a list of int/longs as input.
-    Returns (offset, length).'''
+    '''Takes a bytearray of data as input, as well as an offset of where to
+    look. Returns a derived (offset, length) tuple.'''
     offset = length = 0
     temp_len = data[start] & 0x03
 
