@@ -1,4 +1,5 @@
 import base64
+from datetime import datetime
 from itertools import repeat
 from unittest import TestCase
 
@@ -74,7 +75,7 @@ class ParseTestCase(TestCase):
         self.assertEqual(length, packet.length)
         self.assertEqual(version, packet.sig_version)
         self.assertEqual(typ, packet.raw_sig_type)
-        self.assertEqual(creation_time, packet.creation_time)
+        self.assertEqual(creation_time, packet.raw_creation_time)
         self.assertEqual(key_id, packet.key_id)
         self.assertEqual(pub_alg, packet.raw_pub_algorithm)
         self.assertEqual(hash_alg, packet.raw_hash_algorithm)
@@ -162,9 +163,13 @@ E/GGdt/Cn5Rr1G933H9nwxo=
         self.assertEqual(1, len(packets))
         sig_packet = packets[0]
         self.assertFalse(sig_packet.new)
+        self.assertEqual(3, len(sig_packet.subpackets))
         self.check_sig_packet(sig_packet, 76, 4, 1, 1332874080,
                 b"5C2E46A0F53A76ED", 17, 2)
-        self.assertEqual(3, len(sig_packet.subpackets))
+        # raw expires time is in seconds from creation date
+        self.assertEqual(345600, sig_packet.raw_expiration_time)
+        expires = datetime(2012, 3, 31, 18, 48, 00)
+        self.assertEqual(expires, sig_packet.expiration_time)
 
     def test_parse_linus_binary(self):
         with open('linus.gpg', 'rb') as keyfile:
@@ -203,7 +208,7 @@ E/GGdt/Cn5Rr1G933H9nwxo=
             elif isinstance(packet, PublicSubkeyPacket):
                 seen += 1
                 self.assertEqual(4, packet.pubkey_version)
-                self.assertEqual(1316554898, packet.creation_time)
+                self.assertEqual(1316554898, packet.raw_creation_time)
                 self.assertEqual(1, packet.raw_pub_algorithm)
                 self.assertIsNotNone(packet.modulus)
                 self.assertEqual(65537, packet.exponent)
@@ -212,7 +217,7 @@ E/GGdt/Cn5Rr1G933H9nwxo=
             elif isinstance(packet, PublicKeyPacket):
                 seen += 1
                 self.assertEqual(4, packet.pubkey_version)
-                self.assertEqual(1316554898, packet.creation_time)
+                self.assertEqual(1316554898, packet.raw_creation_time)
                 self.assertEqual(1, packet.raw_pub_algorithm)
                 self.assertEqual("RSA Encrypt or Sign", packet.pub_algorithm)
                 self.assertIsNotNone(packet.modulus)

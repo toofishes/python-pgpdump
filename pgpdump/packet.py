@@ -1,6 +1,7 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import hashlib
 import re
+from warnings import warn
 
 from .utils import get_int2, get_int4, get_mpi, get_key_id
 
@@ -127,13 +128,14 @@ class SignatureSubpacket(object):
 
 class SignaturePacket(Packet, AlgoLookup):
     def __init__(self, *args, **kwargs):
-        self.hash_material = None
         self.sig_version = None
         self.raw_sig_type = None
         self.raw_pub_algorithm = None
         self.raw_hash_algorithm = None
+        self.raw_creation_time = None
         self.creation_time = None
-        self.datetime = None
+        self.raw_expiration_time = None
+        self.expiration_time = None
         self.key_id = None
         self.hash2 = None
         self.subpackets = []
@@ -151,14 +153,17 @@ class SignaturePacket(Packet, AlgoLookup):
             # |  [hash2]
             # |-hash_algo
 
-            self.hash_material = self.data[offset]
+            # "hash material" byte must be 0x05
+            if self.data[offset] != 0x05:
+                raise Exception("Invalid v3 signature packet")
             offset += 1
 
             self.raw_sig_type = self.data[offset]
             offset += 1
 
-            self.creation_time = get_int4(self.data, offset)
-            self.datetime = datetime.utcfromtimestamp(self.creation_time)
+            self.raw_creation_time = get_int4(self.data, offset)
+            self.creation_time = datetime.utcfromtimestamp(
+                    self.raw_creation_time)
             offset += 4
 
             self.key_id = get_key_id(self.data, offset)
@@ -219,12 +224,24 @@ class SignaturePacket(Packet, AlgoLookup):
             sub_data = self.data[offset:offset + sub_len]
             subpacket = SignatureSubpacket(subtype, hashed, sub_data)
             if subpacket.subtype == 2:
-                self.creation_time = get_int4(subpacket.data, 0)
-                self.datetime = datetime.utcfromtimestamp(self.creation_time)
+                self.raw_creation_time = get_int4(subpacket.data, 0)
+                self.creation_time = datetime.utcfromtimestamp(
+                        self.raw_creation_time)
+            elif subpacket.subtype == 3:
+                self.raw_expiration_time = get_int4(subpacket.data, 0)
             elif subpacket.subtype == 16:
                 self.key_id = get_key_id(subpacket.data, 0)
             offset += sub_len
             self.subpackets.append(subpacket)
+
+        if self.raw_expiration_time:
+            self.expiration_time = self.creation_time + timedelta(
+                    seconds=self.raw_expiration_time)
+
+    @property
+    def datetime(self):
+        warn("deprecated, use creation_time", DeprecationWarning)
+        return self.creation_time
 
     sig_types = {
         0x00: "Signature of a binary document",
@@ -267,8 +284,8 @@ class PublicKeyPacket(Packet, AlgoLookup):
         self.pubkey_version = None
         self.fingerprint = None
         self.key_id = None
+        self.raw_creation_time = None
         self.creation_time = None
-        self.datetime = None
         self.raw_pub_algorithm = None
         self.pub_algorithm_type = None
         self.modulus = None
@@ -290,8 +307,9 @@ class PublicKeyPacket(Packet, AlgoLookup):
             self.fingerprint = sha1.hexdigest().upper().encode('ascii')
             self.key_id = self.fingerprint[24:]
 
-            self.creation_time = get_int4(self.data, offset)
-            self.datetime = datetime.utcfromtimestamp(self.creation_time)
+            self.raw_creation_time = get_int4(self.data, offset)
+            self.creation_time = datetime.utcfromtimestamp(
+                    self.raw_creation_time)
             offset += 4
 
             self.raw_pub_algorithm = self.data[offset]
@@ -315,6 +333,11 @@ class PublicKeyPacket(Packet, AlgoLookup):
                 self.prime, offset = get_mpi(self.data, offset)
                 self.group_gen, offset = get_mpi(self.data, offset)
                 self.key_value, offset = get_mpi(self.data, offset)
+
+    @property
+    def datetime(self):
+        warn("deprecated, use creation_time", DeprecationWarning)
+        return self.creation_time
 
     @property
     def pub_algorithm(self):
