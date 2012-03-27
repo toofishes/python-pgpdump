@@ -1,12 +1,20 @@
 import base64
 from datetime import datetime
 from itertools import repeat
+import os.path
 from unittest import TestCase
 
 from pgpdump import AsciiData, BinaryData
 from pgpdump.packet import (TAG_TYPES, SignaturePacket, PublicKeyPacket,
         PublicSubkeyPacket, UserIDPacket, old_tag_length, new_tag_length)
 from pgpdump.utils import crc24, get_mpi, get_key_id, same_key
+
+
+def load_data(filename):
+    full_path = os.path.join('testdata', filename)
+    with open(full_path, 'rb') as fileobj:
+        data = fileobj.read()
+    return data
 
 
 class UtilsTestCase(TestCase):
@@ -156,8 +164,7 @@ E/GGdt/Cn5Rr1G933H9nwxo=
         '''This is a clearsigned document with an expiring signature, so tests
         both the ignore pattern in AsciiData as well as additional signature
         subpackets.'''
-        with open('README.asc', 'rb') as signedfile:
-            asc_data = signedfile.read()
+        asc_data = load_data('README.asc')
         data = AsciiData(asc_data)
         packets = list(data.packets())
         self.assertEqual(1, len(packets))
@@ -172,8 +179,7 @@ E/GGdt/Cn5Rr1G933H9nwxo=
         self.assertEqual(expires, sig_packet.expiration_time)
 
     def test_parse_linus_binary(self):
-        with open('linus.gpg', 'rb') as keyfile:
-            rawdata = keyfile.read()
+        rawdata = load_data('linus.gpg')
         data = BinaryData(rawdata)
         packets = list(data.packets())
         self.assertEqual(44, len(packets))
@@ -235,8 +241,7 @@ E/GGdt/Cn5Rr1G933H9nwxo=
         self.assertEqual(6, seen)
 
     def test_parse_linus_ascii(self):
-        with open('linus.asc', 'rb') as keyfile:
-            rawdata = keyfile.read()
+        rawdata = load_data('linus.asc')
         data = AsciiData(rawdata)
         packets = list(data.packets())
         self.assertEqual(44, len(packets))
@@ -246,8 +251,7 @@ E/GGdt/Cn5Rr1G933H9nwxo=
 
     def test_parse_dan(self):
         '''This key has DSA and ElGamal keys, which Linus' does not have.'''
-        with open('dan.gpg', 'rb') as keyfile:
-            rawdata = keyfile.read()
+        rawdata = load_data('dan.gpg')
         data = BinaryData(rawdata)
         packets = list(data.packets())
         self.assertEqual(9, len(packets))
@@ -286,8 +290,7 @@ E/GGdt/Cn5Rr1G933H9nwxo=
     def test_parse_junio(self):
         '''This key has a single user attribute packet, which also uses the new
         size format on the outer packet, which is rare.'''
-        with open('junio.gpg', 'rb') as keyfile:
-            rawdata = keyfile.read()
+        rawdata = load_data('junio.gpg')
         data = BinaryData(rawdata)
         packets = list(data.packets())
         self.assertEqual(13, len(packets))
