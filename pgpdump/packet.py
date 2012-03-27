@@ -130,7 +130,6 @@ class SignaturePacket(Packet, AlgoLookup):
         self.hash_material = None
         self.sig_version = None
         self.raw_sig_type = None
-        self.sig_type = None
         self.raw_pub_algorithm = None
         self.pub_algorithm = None
         self.raw_hash_algorithm = None
@@ -158,7 +157,6 @@ class SignaturePacket(Packet, AlgoLookup):
             offset += 1
 
             self.raw_sig_type = self.data[offset]
-            self.sig_type = self.lookup_signature_type(self.data[offset])
             offset += 1
 
             self.creation_time = get_int4(self.data, offset)
@@ -186,7 +184,6 @@ class SignaturePacket(Packet, AlgoLookup):
             # |-type
 
             self.raw_sig_type = self.data[offset]
-            self.sig_type = self.lookup_signature_type(self.data[offset])
             offset += 1
 
             self.raw_pub_algorithm = self.data[offset]
@@ -253,9 +250,9 @@ class SignaturePacket(Packet, AlgoLookup):
         0x50: "Third-Party Confirmation signature",
     }
 
-    @classmethod
-    def lookup_signature_type(cls, typ):
-        return cls.sig_types.get(typ, "Unknown")
+    @property
+    def sig_type(self):
+        return self.sig_types.get(self.raw_sig_type, "Unknown")
 
     def __repr__(self):
         return "<%s: %s, %s, length %d>" % (
