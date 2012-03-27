@@ -27,7 +27,7 @@ class BinaryData(object):
         '''A generator function returning PGP data packets.'''
         offset = 0
         while offset < len(self.data):
-            total_length, packet = construct_packet(self.data[offset:])
+            total_length, packet = construct_packet(self.data, offset)
             offset += total_length
             yield packet
 

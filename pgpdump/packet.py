@@ -181,7 +181,7 @@ class SignaturePacket(Packet, AlgoLookup):
         offset = outer_offset
         while offset < outer_offset + outer_length:
             # each subpacket is [variable length] [subtype] [data]
-            sub_offset, sub_len, sub_part = new_tag_length(self.data[offset:])
+            sub_offset, sub_len, sub_part = new_tag_length(self.data, offset)
             # sub_len includes the subtype single byte, knock that off
             sub_len -= 1
             # initial length bytes
@@ -368,7 +368,7 @@ class UserAttributePacket(Packet):
         offset = sub_offset = sub_len = 0
         while offset + sub_len < len(self.data):
             # each subpacket is [variable length] [subtype] [data]
-            sub_offset, sub_len, sub_part = new_tag_length(self.data[offset:])
+            sub_offset, sub_len, sub_part = new_tag_length(self.data, offset)
             # sub_len includes the subtype single byte, knock that off
             sub_len -= 1
             # initial length bytes
@@ -431,10 +431,10 @@ TAG_TYPES = {
 }
 
 
-def new_tag_length(data):
+def new_tag_length(data, start):
     '''Takes the data as a list of int/longs as input.
     Returns (offset, length, partial).'''
-    first = data[0]
+    first = data[start]
     offset = length = 0
     partial = False
 
@@ -442,10 +442,10 @@ def new_tag_length(data):
         length = first
     elif first < 224:
         offset = 1
-        length = ((first - 192) << 8) + data[1] + 192
+        length = ((first - 192) << 8) + data[start + 1] + 192
     elif first == 255:
         offset = 4
-        length = get_int4(data, 1)
+        length = get_int4(data, start + 1)
     else:
         # partial length, 224 <= l < 255
         length = 1 << (first & 0x1f)
@@ -454,42 +454,45 @@ def new_tag_length(data):
     return (offset, length, partial)
 
 
-def old_tag_length(data):
+def old_tag_length(data, start):
     '''Takes the data as a list of int/longs as input.
     Returns (offset, length).'''
     offset = length = 0
-    temp_len = data[0] & 0x03
+    temp_len = data[start] & 0x03
 
     if temp_len == 0:
         offset = 1
-        length = data[1]
+        length = data[start + 1]
     elif temp_len == 1:
         offset = 2
-        length = get_int2(data, 1)
+        length = get_int2(data, start + 1)
     elif temp_len == 2:
         offset = 4
-        length = get_int4(data, 1)
+        length = get_int4(data, start + 1)
     elif temp_len == 3:
-        length = len(data) - 1
+        length = len(data) - start - 1
 
     return (offset, length)
 
 
-def construct_packet(data):
-    tag = data[0] & 0x3f
-    new = bool(data[0] & 0x40)
+def construct_packet(data, start):
+    '''Returns a (length, packet) tuple constructed from 'data' at index
+    'start'. If there is a next packet, it will be found at start + length.'''
+    tag = data[start] & 0x3f
+    new = bool(data[start] & 0x40)
     if new:
-        offset, length, partial = new_tag_length(data[1:])
-        offset += 1
+        data_offset, length, partial = new_tag_length(data, start + 1)
+        data_offset += 1
     else:
         tag >>= 2
-        offset, length = old_tag_length(data)
+        data_offset, length = old_tag_length(data, start)
         partial = False
-    offset += 1
+    data_offset += 1
+    start += data_offset
     name, PacketType = TAG_TYPES.get(tag, ("Unknown", None))
-    total_length = offset + length
-    packet_data = data[offset:total_length]
+    end = start + length
+    packet_data = data[start:end]
     if not PacketType:
         PacketType = Packet
     packet = PacketType(tag, name, new, packet_data)
-    return (total_length, packet)
+    return (data_offset + length, packet)

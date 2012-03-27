@@ -260,7 +260,7 @@ class PacketTestCase(TestCase):
             ((4, 100000), [0xba, 0x00, 0x01, 0x86, 0xa0]),
         ]
         for expected, invals in data:
-            self.assertEqual(expected, old_tag_length(invals))
+            self.assertEqual(expected, old_tag_length(invals, 0))
 
     def test_new_tag_length(self):
         data = [
@@ -279,4 +279,4 @@ class PacketTestCase(TestCase):
             ((4, 100000, False), [0xff, 0x00, 0x01, 0x86, 0xa0]),
         ]
         for expected, invals in data:
-            self.assertEqual(expected, new_tag_length(invals))
+            self.assertEqual(expected, new_tag_length(invals, 0))
