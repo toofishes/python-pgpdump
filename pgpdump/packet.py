@@ -71,20 +71,58 @@ class AlgoLookup(object):
 class SignatureSubpacket(object):
     '''A signature subpacket containing a type, type name, some flags, and the
     contained data.'''
-    def __init__(self, raw, name, hashed, critical, data):
+    CRITICAL_BIT = 0x80
+    CRITICAL_MASK = 0x7f
+
+    def __init__(self, raw, hashed, data):
         self.raw = raw
-        self.name = name
+        self.subtype = raw & self.CRITICAL_MASK
         self.hashed = hashed
-        self.critical = critical
+        self.critical = bool(raw & self.CRITICAL_BIT)
         self.length = len(data)
         self.data = data
 
+    subpacket_types = {
+        2:  "Signature Creation Time",
+        3:  "Signature Expiration Time",
+        4:  "Exportable Certification",
+        5:  "Trust Signature",
+        6:  "Regular Expression",
+        7:  "Revocable",
+        9:  "Key Expiration Time",
+        10: "Placeholder for backward compatibility",
+        11: "Preferred Symmetric Algorithms",
+        12: "Revocation Key",
+        16: "Issuer",
+        20: "Notation Data",
+        21: "Preferred Hash Algorithms",
+        22: "Preferred Compression Algorithms",
+        23: "Key Server Preferences",
+        24: "Preferred Key Server",
+        25: "Primary User ID",
+        26: "Policy URI",
+        27: "Key Flags",
+        28: "Signer's User ID",
+        29: "Reason for Revocation",
+        30: "Features",
+        31: "Signature Target",
+        32: "Embedded Signature",
+    }
+
+    @property
+    def name(self):
+        if self.subtype in (0, 1, 8, 13, 14, 15, 17, 18, 19):
+            return "Reserved"
+        return self.subpacket_types.get(self.subtype, "Unknown")
+
     def __repr__(self):
-        hashed = ""
+        extra = ""
         if self.hashed:
-            hashed = "hashed, "
-        return "<%s: %slength %d>" % (
-                self.__class__.__name__, hashed, self.length)
+            extra += "hashed, "
+        if self.critical:
+            extra += "critical, "
+        return "<%s: %s, %slength %d>" % (
+                self.__class__.__name__, self.name, extra, self.length)
 
 
 class SignaturePacket(Packet, AlgoLookup):
@@ -174,9 +212,6 @@ class SignaturePacket(Packet, AlgoLookup):
             self.hash2 = self.data[offset:offset + 2]
             offset += 2
 
-    CRITICAL_BIT = 0x80
-    CRITICAL_MASK = 0x7f
-
     def parse_subpackets(self, outer_offset, outer_length, hashed=False):
         offset = outer_offset
         while offset < outer_offset + outer_length:
@@ -190,17 +225,12 @@ class SignaturePacket(Packet, AlgoLookup):
             subtype = self.data[offset]
             offset += 1
 
-            critical = bool(subtype & self.CRITICAL_BIT)
-            subtype &= self.CRITICAL_MASK
-            name = self.lookup_signature_subtype(subtype)
-
             sub_data = self.data[offset:offset + sub_len]
-            subpacket = SignatureSubpacket(subtype, name,
-                    hashed, critical, sub_data)
-            if subpacket.raw == 2:
+            subpacket = SignatureSubpacket(subtype, hashed, sub_data)
+            if subpacket.subtype == 2:
                 self.creation_time = get_int4(subpacket.data, 0)
                 self.datetime = datetime.utcfromtimestamp(self.creation_time)
-            elif subpacket.raw == 16:
+            elif subpacket.subtype == 16:
                 self.key_id = get_key_id(subpacket.data, 0)
             offset += sub_len
             self.subpackets.append(subpacket)
@@ -226,40 +256,6 @@ class SignaturePacket(Packet, AlgoLookup):
     @classmethod
     def lookup_signature_type(cls, typ):
         return cls.sig_types.get(typ, "Unknown")
-
-    subpacket_types = {
-        2:  "signature creation time",
-        3:  "signature expiration time",
-        4:  "exportable certification",
-        5:  "trust signature",
-        6:  "regular expression",
-        7:  "revocable",
-        9:  "key expiration time",
-        10: "additional decryption key",
-        11: "preferred symmetric algorithms",
-        12: "revocation key",
-        16: "issuer key ID",
-        20: "notation data",
-        21: "preferred hash algorithms",
-        22: "preferred compression algorithms",
-        23: "key server preferences",
-        24: "preferred key server",
-        25: "primary User ID",
-        26: "policy URL",
-        27: "key flags",
-        28: "signer's User ID",
-        29: "reason for revocation",
-        30: "features",
-        31: "signature target",
-        32: "embedded signature",
-    }
-
-    @classmethod
-    def lookup_signature_subtype(cls, typ):
-        # reserved values check
-        if typ in (0, 1, 8, 13, 14, 15, 17, 18, 19):
-            return "reserved"
-        return cls.subpacket_types.get(typ, "unknown")
 
     def __repr__(self):
         return "<%s: %s, %s, length %d>" % (
