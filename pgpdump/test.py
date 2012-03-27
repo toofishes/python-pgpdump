@@ -143,6 +143,21 @@ E/GGdt/Cn5Rr1G933H9nwxo=
         self.assertEqual(b'\xae\x97', sig_packet.hash2)
         self.assertEqual(0, len(sig_packet.subpackets))
 
+    def test_parse_ascii_clearsign(self):
+        '''This is a clearsigned document with an expiring signature, so tests
+        both the ignore pattern in AsciiData as well as additional signature
+        subpackets.'''
+        with open('README.asc', 'rb') as signedfile:
+            asc_data = signedfile.read()
+        data = AsciiData(asc_data)
+        packets = list(data.packets())
+        self.assertEqual(1, len(packets))
+        sig_packet = packets[0]
+        self.assertFalse(sig_packet.new)
+        self.check_sig_packet(sig_packet, 76, 4, 1, 1332874080,
+                b"5C2E46A0F53A76ED", 17, 2)
+        self.assertEqual(3, len(sig_packet.subpackets))
+
     def test_parse_linus_binary(self):
         with open('linus.gpg', 'rb') as keyfile:
             rawdata = keyfile.read()

@@ -1,4 +1,5 @@
 include COPYRIGHT
+include README.asc
 include README.md
 include dan.gpg
 include linus.asc
