@@ -131,9 +131,7 @@ class SignaturePacket(Packet, AlgoLookup):
         self.sig_version = None
         self.raw_sig_type = None
         self.raw_pub_algorithm = None
-        self.pub_algorithm = None
         self.raw_hash_algorithm = None
-        self.hash_algorithm = None
         self.creation_time = None
         self.datetime = None
         self.key_id = None
@@ -167,11 +165,9 @@ class SignaturePacket(Packet, AlgoLookup):
             offset += 8
 
             self.raw_pub_algorithm = self.data[offset]
-            self.pub_algorithm = self.lookup_pub_algorithm(self.data[offset])
             offset += 1
 
             self.raw_hash_algorithm = self.data[offset]
-            self.hash_algorithm = self.lookup_hash_algorithm(self.data[offset])
             offset += 1
 
             self.hash2 = self.data[offset:offset + 2]
@@ -187,11 +183,9 @@ class SignaturePacket(Packet, AlgoLookup):
             offset += 1
 
             self.raw_pub_algorithm = self.data[offset]
-            self.pub_algorithm = self.lookup_pub_algorithm(self.data[offset])
             offset += 1
 
             self.raw_hash_algorithm = self.data[offset]
-            self.hash_algorithm = self.lookup_hash_algorithm(self.data[offset])
             offset += 1
 
             # next is hashed subpackets
@@ -254,6 +248,14 @@ class SignaturePacket(Packet, AlgoLookup):
     def sig_type(self):
         return self.sig_types.get(self.raw_sig_type, "Unknown")
 
+    @property
+    def pub_algorithm(self):
+        return self.lookup_pub_algorithm(self.raw_pub_algorithm)
+
+    @property
+    def hash_algorithm(self):
+        return self.lookup_hash_algorithm(self.raw_hash_algorithm)
+
     def __repr__(self):
         return "<%s: %s, %s, length %d>" % (
                 self.__class__.__name__, self.pub_algorithm,
@@ -268,7 +270,6 @@ class PublicKeyPacket(Packet, AlgoLookup):
         self.creation_time = None
         self.datetime = None
         self.raw_pub_algorithm = None
-        self.pub_algorithm = None
         self.pub_algorithm_type = None
         self.modulus = None
         self.exponent = None
@@ -294,7 +295,6 @@ class PublicKeyPacket(Packet, AlgoLookup):
             offset += 4
 
             self.raw_pub_algorithm = self.data[offset]
-            self.pub_algorithm = self.lookup_pub_algorithm(self.data[offset])
             offset += 1
 
             if self.raw_pub_algorithm in (1, 2, 3):
@@ -315,6 +315,10 @@ class PublicKeyPacket(Packet, AlgoLookup):
                 self.prime, offset = get_mpi(self.data, offset)
                 self.group_gen, offset = get_mpi(self.data, offset)
                 self.key_value, offset = get_mpi(self.data, offset)
+
+    @property
+    def pub_algorithm(self):
+        return self.lookup_pub_algorithm(self.raw_pub_algorithm)
 
     def __repr__(self):
         return "<%s: 0x%s, %s, length %d>" % (
