@@ -75,15 +75,21 @@ def get_int8(data, offset):
 
 def get_mpi(data, offset):
     '''Gets a multi-precision integer as per RFC-4880.
-    Returns the MPI, in hexlified form, and the new offset.
+    Returns the MPI and the new offset.
     See: http://tools.ietf.org/html/rfc4880#section-3.2'''
     mpi_len = get_int2(data, offset)
     offset += 2
     to_process = (mpi_len + 7) // 8
     mpi = 0
-    for i in range(to_process):
+    i = -4
+    for i in range(0, to_process - 3, 4):
+        mpi <<= 32
+        mpi += get_int4(data, offset + i)
+    for j in range(i + 4, to_process):
         mpi <<= 8
-        mpi += data[offset + i]
+        mpi += data[offset + j]
+    # Python 3.2 and later alternative:
+    #mpi = int.from_bytes(data[offset:offset + to_process], byteorder='big')
     offset += to_process
     return mpi, offset
 
