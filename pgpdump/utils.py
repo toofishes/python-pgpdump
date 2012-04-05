@@ -64,18 +64,13 @@ def get_int2(data, offset):
 
 def get_int4(data, offset):
     '''Pull four bytes from data at offset and return as an integer.'''
-    length  = data[offset] << 24
-    length += data[offset + 1] << 16
-    length += data[offset + 2] << 8
-    length += data[offset + 3]
-    return length
+    return ((data[offset] << 24) + (data[offset + 1] << 16) +
+            (data[offset + 2] << 8) + data[offset + 3])
 
 
 def get_int8(data, offset):
     '''Pull eight bytes from data at offset and return as an integer.'''
-    length  = get_int4(data, offset) << 32
-    length += get_int4(data, offset + 4)
-    return length
+    return (get_int4(data, offset) << 32) + get_int4(data, offset + 4)
 
 
 def get_mpi(data, offset):
