@@ -9,11 +9,11 @@ def parsefile(name):
             data = AsciiData(infile.read())
         else:
             data = BinaryData(infile.read())
-    counter = 0
+    counter = length = 0
     for packet in data.packets():
         counter += 1
-        print(packet)
-    print(counter)
+        length += packet.length
+    print('%d packets, length %d' % (counter, length))
 
 
 def main():
@@ -22,4 +22,6 @@ def main():
 
 
 if __name__ == '__main__':
+    #import cProfile
+    #cProfile.run('main()', 'pgpdump.profile')
     main()

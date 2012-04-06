@@ -22,6 +22,8 @@ class UtilsTestCase(TestCase):
         self.assertEqual(0xb704ce, crc24(bytearray(b"")))
         self.assertEqual(0x21cf02, crc24(bytearray(b"123456789")))
         self.assertEqual(0xe84567, crc24(repeat(0, 1024 * 1024)))
+        #self.assertEqual(0x03ebb7, crc24(repeat(0, 10 * 1024 * 1024)))
+        #self.assertEqual(0x5c0542, crc24(repeat(0, 30 * 1024 * 1024)))
 
     # get_int2, get_int4 are tested plenty by actual code
 
