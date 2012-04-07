@@ -145,7 +145,7 @@ class SignaturePacket(Packet, AlgoLookup):
     def parse(self):
         self.sig_version = self.data[0]
         offset = 1
-        if self.sig_version == 3:
+        if self.sig_version in (2, 3):
             # 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f
             # |  |  [  ctime  ] [ key_id                 ] |
             # |  |-type                           pub_algo-|
