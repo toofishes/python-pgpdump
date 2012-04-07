@@ -207,6 +207,9 @@ class SignaturePacket(Packet, AlgoLookup):
 
             self.hash2 = self.data[offset:offset + 2]
             offset += 2
+        else:
+            raise Exception("Unsupported signature packet, version %d" %
+                    self.sig_version)
 
     def parse_subpackets(self, outer_offset, outer_length, hashed=False):
         offset = outer_offset
@@ -333,6 +336,9 @@ class PublicKeyPacket(Packet, AlgoLookup):
                 self.prime, offset = get_mpi(self.data, offset)
                 self.group_gen, offset = get_mpi(self.data, offset)
                 self.key_value, offset = get_mpi(self.data, offset)
+        else:
+            raise Exception("Unsupported public key packet, version %d" %
+                    self.pubkey_version)
 
     @property
     def datetime(self):
