@@ -321,6 +321,37 @@ E/GGdt/Cn5Rr1G933H9nwxo=
         self.assertEqual("jpeg", ua_packet.image_format)
         self.assertEqual(1513, len(ua_packet.image_data))
 
+    def test_parse_v3_pubkeys(self):
+        '''Two older version 3 public keys.'''
+        rawdata = load_data('v3pubkeys.gpg')
+        data = BinaryData(rawdata)
+        packets = list(data.packets())
+        self.assertEqual(2, len(packets))
+
+        packet = packets[0]
+        self.assertTrue(isinstance(packet, PublicKeyPacket))
+        self.assertEqual(1, packet.raw_pub_algorithm)
+        self.assertEqual("rsa", packet.pub_algorithm_type)
+        self.assertEqual(944849149, packet.raw_creation_time)
+        self.assertIsNone(packet.expiration_time)
+        self.assertIsNotNone(packet.modulus)
+        self.assertIsNotNone(packet.exponent)
+        self.assertEqual(b"3FC0BF6B", packet.key_id)
+        self.assertEqual(b"7D263C88A1AB7737E31150CB4F3A211A",
+                packet.fingerprint)
+
+        packet = packets[1]
+        self.assertTrue(isinstance(packet, PublicKeyPacket))
+        self.assertEqual(1, packet.raw_pub_algorithm)
+        self.assertEqual("rsa", packet.pub_algorithm_type)
+        self.assertEqual(904151571, packet.raw_creation_time)
+        self.assertIsNone(packet.expiration_time)
+        self.assertIsNotNone(packet.modulus)
+        self.assertIsNotNone(packet.exponent)
+        self.assertEqual(b"3DDE776D", packet.key_id)
+        self.assertEqual(b"48A4F9F891F093019BC7FC532A3C5692",
+                packet.fingerprint)
+
 
 class PacketTestCase(TestCase):
     def test_lookup_type(self):

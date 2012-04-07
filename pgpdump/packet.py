@@ -1,3 +1,4 @@
+import binascii
 from datetime import datetime, timedelta
 import hashlib
 import re
@@ -289,6 +290,8 @@ class PublicKeyPacket(Packet, AlgoLookup):
         self.key_id = None
         self.raw_creation_time = None
         self.creation_time = None
+        self.raw_days_valid = None
+        self.expiration_time = None
         self.raw_pub_algorithm = None
         self.pub_algorithm_type = None
         self.modulus = None
@@ -302,7 +305,34 @@ class PublicKeyPacket(Packet, AlgoLookup):
     def parse(self):
         self.pubkey_version = self.data[0]
         offset = 1
-        if self.pubkey_version == 4:
+        if self.pubkey_version in (2, 3):
+            self.raw_creation_time = get_int4(self.data, offset)
+            self.creation_time = datetime.utcfromtimestamp(
+                    self.raw_creation_time)
+            offset += 4
+
+            self.raw_days_valid = get_int2(self.data, offset)
+            offset += 2
+            if self.raw_days_valid > 0:
+                self.expiration_time = self.creation_time + timedelta(
+                        days=self.raw_days_valid)
+
+            self.raw_pub_algorithm = self.data[offset]
+            offset += 1
+
+            offset = self.parse_key_material(offset)
+            # Key type must be RSA for v2 and v3 public keys
+            if self.pub_algorithm_type != "rsa":
+                raise Exception("Invalid non-RSA v%d public key" %
+                        self.pubkey_version)
+
+            self.key_id = ('%X' % self.modulus)[-8:].encode('ascii')
+            md5 = hashlib.md5()
+            get_bytes = lambda x: binascii.unhexlify(('%X' % x).encode('ascii'))
+            md5.update(get_bytes(self.modulus))
+            md5.update(get_bytes(self.exponent))
+            self.fingerprint = md5.hexdigest().upper().encode('ascii')
+        elif self.pubkey_version == 4:
             sha1 = hashlib.sha1()
             seed_bytes = (0x99, (self.length >> 8) & 0xff, self.length & 0xff)
             sha1.update(bytearray(seed_bytes))
@@ -318,27 +348,35 @@ class PublicKeyPacket(Packet, AlgoLookup):
             self.raw_pub_algorithm = self.data[offset]
             offset += 1
 
-            if self.raw_pub_algorithm in (1, 2, 3):
-                self.pub_algorithm_type = "rsa"
-                # n, e
-                self.modulus, offset = get_mpi(self.data, offset)
-                self.exponent, offset = get_mpi(self.data, offset)
-            elif self.raw_pub_algorithm == 17:
-                self.pub_algorithm_type = "dsa"
-                # p, q, g, y
-                self.prime, offset = get_mpi(self.data, offset)
-                self.group_order, offset = get_mpi(self.data, offset)
-                self.group_gen, offset = get_mpi(self.data, offset)
-                self.key_value, offset = get_mpi(self.data, offset)
-            elif self.raw_pub_algorithm == 16:
-                self.pub_algorithm_type = "elgamal"
-                # p, g, y
-                self.prime, offset = get_mpi(self.data, offset)
-                self.group_gen, offset = get_mpi(self.data, offset)
-                self.key_value, offset = get_mpi(self.data, offset)
+            offset = self.parse_key_material(offset)
         else:
             raise Exception("Unsupported public key packet, version %d" %
                     self.pubkey_version)
+
+    def parse_key_material(self, offset):
+        if self.raw_pub_algorithm in (1, 2, 3):
+            self.pub_algorithm_type = "rsa"
+            # n, e
+            self.modulus, offset = get_mpi(self.data, offset)
+            self.exponent, offset = get_mpi(self.data, offset)
+        elif self.raw_pub_algorithm == 17:
+            self.pub_algorithm_type = "dsa"
+            # p, q, g, y
+            self.prime, offset = get_mpi(self.data, offset)
+            self.group_order, offset = get_mpi(self.data, offset)
+            self.group_gen, offset = get_mpi(self.data, offset)
+            self.key_value, offset = get_mpi(self.data, offset)
+        elif self.raw_pub_algorithm == 16:
+            self.pub_algorithm_type = "elgamal"
+            # p, g, y
+            self.prime, offset = get_mpi(self.data, offset)
+            self.group_gen, offset = get_mpi(self.data, offset)
+            self.key_value, offset = get_mpi(self.data, offset)
+        else:
+            raise Exception("Unsupported public key algorithm %d" %
+                    self.raw_pub_algorithm)
+
+        return offset
 
     @property
     def datetime(self):
