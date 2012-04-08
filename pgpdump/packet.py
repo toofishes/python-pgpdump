@@ -410,7 +410,7 @@ class UserIDPacket(Packet):
         super(UserIDPacket, self).__init__(*args, **kwargs)
 
     def parse(self):
-        self.user = self.data.decode('utf8')
+        self.user = self.data.decode('utf8', errors='replace')
         matches = re.match(r'^([^<]+)? ?<([^>]*)>?', self.user)
         if matches:
             self.user_name = matches.group(1).strip()
