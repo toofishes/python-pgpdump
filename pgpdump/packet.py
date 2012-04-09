@@ -49,6 +49,8 @@ class AlgoLookup(object):
 
     @classmethod
     def lookup_pub_algorithm(cls, alg):
+        if 100 <= alg <= 110:
+            return "Private/Experimental algorithm"
         return cls.pub_algorithms.get(alg, "Unknown")
 
     hash_algorithms = {
@@ -66,6 +68,8 @@ class AlgoLookup(object):
         # reserved values check
         if alg in (4, 5, 6, 7):
             return "Reserved"
+        if 100 <= alg <= 110:
+            return "Private/Experimental algorithm"
         return cls.hash_algorithms.get(alg, "Unknown")
 
 
@@ -364,12 +368,15 @@ class PublicKeyPacket(Packet, AlgoLookup):
             self.group_order, offset = get_mpi(self.data, offset)
             self.group_gen, offset = get_mpi(self.data, offset)
             self.key_value, offset = get_mpi(self.data, offset)
-        elif self.raw_pub_algorithm == 16:
+        elif self.raw_pub_algorithm in (16, 20):
             self.pub_algorithm_type = "elgamal"
             # p, g, y
             self.prime, offset = get_mpi(self.data, offset)
             self.group_gen, offset = get_mpi(self.data, offset)
             self.key_value, offset = get_mpi(self.data, offset)
+        elif 100 <= self.raw_pub_algorithm <= 110:
+            # Private/Experimental algorithms, just move on
+            pass
         else:
             raise Exception("Unsupported public key algorithm %d" %
                     self.raw_pub_algorithm)
