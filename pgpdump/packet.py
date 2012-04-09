@@ -411,8 +411,10 @@ class UserIDPacket(Packet):
         self.user = self.data.decode('utf8', errors='replace')
         matches = re.match(r'^([^<]+)? ?<([^>]*)>?', self.user)
         if matches:
-            self.user_name = matches.group(1).strip()
-            self.user_email = matches.group(2).strip()
+            if matches.group(1):
+                self.user_name = matches.group(1).strip()
+            if matches.group(2):
+                self.user_email = matches.group(2).strip()
 
     def __repr__(self):
         return "<%s: %r (%r), length %d>" % (
