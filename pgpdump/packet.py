@@ -329,15 +329,24 @@ class PublicKeyPacket(Packet, AlgoLookup):
             offset += 1
 
             offset = self.parse_key_material(offset)
+            md5 = hashlib.md5()
             # Key type must be RSA for v2 and v3 public keys
-            if self.pub_algorithm_type != "rsa":
+            if self.pub_algorithm_type == "rsa":
+                key_id = ('%X' % self.modulus)[-8:].zfill(8)
+                self.key_id = key_id.encode('ascii')
+                md5.update(get_int_bytes(self.modulus))
+                md5.update(get_int_bytes(self.exponent))
+            elif self.pub_algorithm_type == "elg":
+                # Of course, there are ELG keys in the wild too. This formula
+                # for calculating key_id and fingerprint is derived from an old
+                # key and there is a test case based on it.
+                key_id = ('%X' % self.prime)[-8:].zfill(8)
+                self.key_id = key_id.encode('ascii')
+                md5.update(get_int_bytes(self.prime))
+                md5.update(get_int_bytes(self.group_gen))
+            else:
                 raise PgpdumpException("Invalid non-RSA v%d public key" %
                         self.pubkey_version)
-
-            self.key_id = ('%X' % self.modulus)[-8:].zfill(8).encode('ascii')
-            md5 = hashlib.md5()
-            md5.update(get_int_bytes(self.modulus))
-            md5.update(get_int_bytes(self.exponent))
             self.fingerprint = md5.hexdigest().upper().encode('ascii')
         elif self.pubkey_version == 4:
             sha1 = hashlib.sha1()
@@ -374,7 +383,7 @@ class PublicKeyPacket(Packet, AlgoLookup):
             self.group_gen, offset = get_mpi(self.data, offset)
             self.key_value, offset = get_mpi(self.data, offset)
         elif self.raw_pub_algorithm in (16, 20):
-            self.pub_algorithm_type = "elgamal"
+            self.pub_algorithm_type = "elg"
             # p, g, y
             self.prime, offset = get_mpi(self.data, offset)
             self.group_gen, offset = get_mpi(self.data, offset)

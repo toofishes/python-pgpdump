@@ -361,6 +361,34 @@ E/GGdt/Cn5Rr1G933H9nwxo=
         self.assertEqual(b"48A4F9F891F093019BC7FC532A3C5692",
                 packet.fingerprint)
 
+    def test_parse_v3_elgamal_pk(self):
+        '''Two older version 3 public keys.'''
+        rawdata = self.load_data('v3elgpk.asc')
+        data = AsciiData(rawdata)
+        packets = list(data.packets())
+        self.assertEqual(3, len(packets))
+
+        packet = packets[0]
+        self.assertTrue(isinstance(packet, PublicKeyPacket))
+        self.assertEqual(16, packet.raw_pub_algorithm)
+        self.assertEqual("elg", packet.pub_algorithm_type)
+        self.assertEqual(888716291, packet.raw_creation_time)
+        self.assertIsNone(packet.expiration_time)
+        self.assertIsNone(packet.modulus)
+        self.assertIsNone(packet.exponent)
+        self.assertIsNotNone(packet.prime)
+        self.assertIsNotNone(packet.group_gen)
+        self.assertEqual(b"FF570A03", packet.key_id)
+        self.assertEqual(b"7C4529FB11669ACA567BD53972000594",
+                packet.fingerprint)
+
+        self.assertTrue(isinstance(packets[1], UserIDPacket))
+
+        packet = packets[2]
+        self.assertTrue(isinstance(packet, SignaturePacket))
+        self.assertEqual(16, packet.raw_pub_algorithm)
+        self.assertEqual(888716292, packet.raw_creation_time)
+
 
 class PacketTestCase(TestCase):
     def test_lookup_type(self):
