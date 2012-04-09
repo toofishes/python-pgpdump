@@ -2,7 +2,7 @@ import base64
 from datetime import datetime
 from itertools import repeat
 import os.path
-from unittest import TestCase
+from unittest import main, TestCase
 
 from pgpdump import AsciiData, BinaryData
 from pgpdump.packet import (TAG_TYPES, SignaturePacket, PublicKeyPacket,
@@ -394,3 +394,7 @@ class PacketTestCase(TestCase):
         ]
         for expected, invals in data:
             self.assertEqual(expected, new_tag_length(invals, 0))
+
+
+if __name__ == '__main__':
+    main()
