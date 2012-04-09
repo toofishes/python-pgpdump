@@ -11,13 +11,6 @@ from pgpdump.utils import (PgpdumpException, crc24, get_int8, get_mpi,
         get_key_id, get_int_bytes, same_key)
 
 
-def load_data(filename):
-    full_path = os.path.join('testdata', filename)
-    with open(full_path, 'rb') as fileobj:
-        data = fileobj.read()
-    return data
-
-
 class UtilsTestCase(TestCase):
     def test_crc24(self):
         self.assertEqual(0xb704ce, crc24(bytearray(b"")))
@@ -80,19 +73,7 @@ class UtilsTestCase(TestCase):
         self.assertFalse(same_key(different, short))
 
 
-class ParseTestCase(TestCase):
-    def test_parse_empty(self):
-        with self.assertRaises(PgpdumpException):
-            BinaryData(None)
-
-    def test_parse_short(self):
-        with self.assertRaises(PgpdumpException):
-            BinaryData([0x00])
-
-    def test_parse_invalid(self):
-        with self.assertRaises(PgpdumpException):
-            BinaryData([0x00, 0x00])
-
+class Helper(object):
     def check_sig_packet(self, packet, length, version, typ,
             creation_time, key_id, pub_alg, hash_alg):
         '''Helper method for quickly verifying several fields on a signature
@@ -114,6 +95,27 @@ class ParseTestCase(TestCase):
                     packet.pub_algorithm)
         if hash_alg == 2:
             self.assertEqual("SHA1", packet.hash_algorithm)
+
+    def load_data(self, filename):
+        full_path = os.path.join('testdata', filename)
+        self.assertTrue(os.path.exists(full_path))
+        with open(full_path, 'rb') as fileobj:
+            data = fileobj.read()
+        return data
+
+
+class ParseTestCase(TestCase, Helper):
+    def test_parse_empty(self):
+        with self.assertRaises(PgpdumpException):
+            BinaryData(None)
+
+    def test_parse_short(self):
+        with self.assertRaises(PgpdumpException):
+            BinaryData([0x00])
+
+    def test_parse_invalid(self):
+        with self.assertRaises(PgpdumpException):
+            BinaryData([0x00, 0x00])
 
     def test_parse_single_sig_packet(self):
         base64_sig = b"iEYEABECAAYFAk6A4a4ACgkQXC5GoPU6du1ATACgodGyQne3Rb7"\
@@ -159,6 +161,8 @@ gMsAoLGOjudliDT9u0UqxN9KeJ22JdnX
 -----END PGP SIGNATURE-----'''
         self.assertRaises(PgpdumpException, AsciiData, asc_data)
 
+
+class ParseDataTestCase(TestCase, Helper):
     def test_parse_v3_sig(self):
         asc_data = b'''
 -----BEGIN PGP SIGNATURE-----
@@ -182,7 +186,7 @@ E/GGdt/Cn5Rr1G933H9nwxo=
         '''This is a clearsigned document with an expiring signature, so tests
         both the ignore pattern in AsciiData as well as additional signature
         subpackets.'''
-        asc_data = load_data('README.asc')
+        asc_data = self.load_data('README.asc')
         data = AsciiData(asc_data)
         packets = list(data.packets())
         self.assertEqual(1, len(packets))
@@ -197,7 +201,7 @@ E/GGdt/Cn5Rr1G933H9nwxo=
         self.assertEqual(expires, sig_packet.expiration_time)
 
     def test_parse_linus_binary(self):
-        rawdata = load_data('linus.gpg')
+        rawdata = self.load_data('linus.gpg')
         data = BinaryData(rawdata)
         packets = list(data.packets())
         self.assertEqual(44, len(packets))
@@ -259,7 +263,7 @@ E/GGdt/Cn5Rr1G933H9nwxo=
         self.assertEqual(6, seen)
 
     def test_parse_linus_ascii(self):
-        rawdata = load_data('linus.asc')
+        rawdata = self.load_data('linus.asc')
         data = AsciiData(rawdata)
         packets = list(data.packets())
         self.assertEqual(44, len(packets))
@@ -269,7 +273,7 @@ E/GGdt/Cn5Rr1G933H9nwxo=
 
     def test_parse_dan(self):
         '''This key has DSA and ElGamal keys, which Linus' does not have.'''
-        rawdata = load_data('dan.gpg')
+        rawdata = self.load_data('dan.gpg')
         data = BinaryData(rawdata)
         packets = list(data.packets())
         self.assertEqual(9, len(packets))
@@ -285,7 +289,7 @@ E/GGdt/Cn5Rr1G933H9nwxo=
             if isinstance(packet, PublicSubkeyPacket):
                 seen += 1
                 self.assertEqual(16, packet.raw_pub_algorithm)
-                self.assertEqual("elgamal", packet.pub_algorithm_type)
+                self.assertEqual("elg", packet.pub_algorithm_type)
                 self.assertIsNotNone(packet.prime)
                 self.assertIsNone(packet.group_order)
                 self.assertIsNotNone(packet.group_gen)
@@ -308,7 +312,7 @@ E/GGdt/Cn5Rr1G933H9nwxo=
     def test_parse_junio(self):
         '''This key has a single user attribute packet, which also uses the new
         size format on the outer packet, which is rare.'''
-        rawdata = load_data('junio.gpg')
+        rawdata = self.load_data('junio.gpg')
         data = BinaryData(rawdata)
         packets = list(data.packets())
         self.assertEqual(13, len(packets))
@@ -328,7 +332,7 @@ E/GGdt/Cn5Rr1G933H9nwxo=
 
     def test_parse_v3_pubkeys(self):
         '''Two older version 3 public keys.'''
-        rawdata = load_data('v3pubkeys.gpg')
+        rawdata = self.load_data('v3pubkeys.gpg')
         data = BinaryData(rawdata)
         packets = list(data.packets())
         self.assertEqual(2, len(packets))
