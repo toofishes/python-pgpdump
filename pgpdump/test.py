@@ -7,7 +7,8 @@ from unittest import TestCase
 from pgpdump import AsciiData, BinaryData
 from pgpdump.packet import (TAG_TYPES, SignaturePacket, PublicKeyPacket,
         PublicSubkeyPacket, UserIDPacket, old_tag_length, new_tag_length)
-from pgpdump.utils import crc24, get_int8, get_mpi, get_key_id, same_key
+from pgpdump.utils import (crc24, get_int8, get_mpi, get_key_id,
+        get_int_bytes, same_key)
 
 
 def load_data(filename):
@@ -48,6 +49,10 @@ class UtilsTestCase(TestCase):
     def test_key_id(self):
         self.assertEqual(b"5C2E46A0F53A76ED",
                 get_key_id(b"\\.F\xa0\xf5:v\xed", 0))
+
+    def test_int_bytes(self):
+        self.assertEqual(b"\x11", get_int_bytes(17))
+        self.assertEqual(b"\x01\x00\x01", get_int_bytes(65537))
 
     def test_same_key(self):
         fprint = b"A5CA9D5515DC2CA73DF748CA5C2E46A0F53A76ED"

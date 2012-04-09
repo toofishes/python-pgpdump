@@ -1,10 +1,9 @@
-import binascii
 from datetime import datetime, timedelta
 import hashlib
 import re
 from warnings import warn
 
-from .utils import get_int2, get_int4, get_mpi, get_key_id
+from .utils import get_int2, get_int4, get_mpi, get_key_id, get_int_bytes
 
 
 class Packet(object):
@@ -328,9 +327,8 @@ class PublicKeyPacket(Packet, AlgoLookup):
 
             self.key_id = ('%X' % self.modulus)[-8:].encode('ascii')
             md5 = hashlib.md5()
-            get_bytes = lambda x: binascii.unhexlify(('%X' % x).encode('ascii'))
-            md5.update(get_bytes(self.modulus))
-            md5.update(get_bytes(self.exponent))
+            md5.update(get_int_bytes(self.modulus))
+            md5.update(get_int_bytes(self.exponent))
             self.fingerprint = md5.hexdigest().upper().encode('ascii')
         elif self.pubkey_version == 4:
             sha1 = hashlib.sha1()

@@ -101,6 +101,14 @@ def get_key_id(data, offset):
     return key_id.upper()
 
 
+def get_int_bytes(data):
+    '''Get the big-endian byte form of an integer or MPI.'''
+    hexval = '%X' % data
+    new_len = (len(hexval) + 1) // 2 * 2
+    hexval = hexval.zfill(new_len)
+    return binascii.unhexlify(hexval.encode('ascii'))
+
+
 def same_key(key_a, key_b):
     '''Comparison function for key ID or fingerprint strings, taking into
     account varying length.'''
