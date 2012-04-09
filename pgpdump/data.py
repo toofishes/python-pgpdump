@@ -1,7 +1,7 @@
 from base64 import b64decode
 
 from .packet import construct_packet
-from .utils import crc24
+from .utils import PgpdumpException, crc24
 
 
 class BinaryData(object):
@@ -11,15 +11,15 @@ class BinaryData(object):
 
     def __init__(self, data):
         if not data:
-            raise Exception("no data to parse")
+            raise PgpdumpException("no data to parse")
         if len(data) <= 1:
-            raise Exception("data too short")
+            raise PgpdumpException("data too short")
 
         data = bytearray(data)
 
         # 7th bit of the first byte must be a 1
         if not bool(data[0] & self.binary_tag_flag):
-            raise Exception("incorrect binary data")
+            raise PgpdumpException("incorrect binary data")
         self.data = data
         self.length = len(data)
 
@@ -48,8 +48,9 @@ class AsciiData(BinaryData):
             # verify it if we could find it
             actual_crc = crc24(data)
             if known_crc != actual_crc:
-                raise Exception("CRC failure: known 0x%x, actual 0x%x" % (
-                    known_crc, actual_crc))
+                raise PgpdumpException(
+                        "CRC failure: known 0x%x, actual 0x%x" % (
+                            known_crc, actual_crc))
         super(AsciiData, self).__init__(data)
 
     @staticmethod
@@ -74,7 +75,8 @@ class AsciiData(BinaryData):
             if nl_idx < 0:
                 nl_idx = data.find(b'\r\n\r\n', idx)
             if nl_idx < 0:
-                raise Exception("found magic, could not find start of data")
+                raise PgpdumpException(
+                        "found magic, could not find start of data")
             # now find the end of the data.
             end_idx = data.find(b'-----', nl_idx)
             if end_idx:

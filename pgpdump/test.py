@@ -7,8 +7,8 @@ from unittest import TestCase
 from pgpdump import AsciiData, BinaryData
 from pgpdump.packet import (TAG_TYPES, SignaturePacket, PublicKeyPacket,
         PublicSubkeyPacket, UserIDPacket, old_tag_length, new_tag_length)
-from pgpdump.utils import (crc24, get_int8, get_mpi, get_key_id,
-        get_int_bytes, same_key)
+from pgpdump.utils import (PgpdumpException, crc24, get_int8, get_mpi,
+        get_key_id, get_int_bytes, same_key)
 
 
 def load_data(filename):
@@ -82,15 +82,15 @@ class UtilsTestCase(TestCase):
 
 class ParseTestCase(TestCase):
     def test_parse_empty(self):
-        with self.assertRaises(Exception):
+        with self.assertRaises(PgpdumpException):
             BinaryData(None)
 
     def test_parse_short(self):
-        with self.assertRaises(Exception):
+        with self.assertRaises(PgpdumpException):
             BinaryData([0x00])
 
     def test_parse_invalid(self):
-        with self.assertRaises(Exception):
+        with self.assertRaises(PgpdumpException):
             BinaryData([0x00, 0x00])
 
     def check_sig_packet(self, packet, length, version, typ,
@@ -157,7 +157,7 @@ iEYEABECAAYFAk6neOwACgkQXC5GoPU6du23AQCgghWjIFgBazXWIZNj4PGnkuYv
 gMsAoLGOjudliDT9u0UqxN9KeJ22JdnX
 =KYol
 -----END PGP SIGNATURE-----'''
-        self.assertRaises(Exception, AsciiData, asc_data)
+        self.assertRaises(PgpdumpException, AsciiData, asc_data)
 
     def test_parse_v3_sig(self):
         asc_data = b'''

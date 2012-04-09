@@ -3,7 +3,8 @@ import hashlib
 import re
 from warnings import warn
 
-from .utils import get_int2, get_int4, get_mpi, get_key_id, get_int_bytes
+from .utils import (PgpdumpException, get_int2, get_int4, get_mpi,
+        get_key_id, get_int_bytes)
 
 
 class Packet(object):
@@ -159,7 +160,7 @@ class SignaturePacket(Packet, AlgoLookup):
 
             # "hash material" byte must be 0x05
             if self.data[offset] != 0x05:
-                raise Exception("Invalid v3 signature packet")
+                raise PgpdumpException("Invalid v3 signature packet")
             offset += 1
 
             self.raw_sig_type = self.data[offset]
@@ -212,7 +213,7 @@ class SignaturePacket(Packet, AlgoLookup):
             self.hash2 = self.data[offset:offset + 2]
             offset += 2
         else:
-            raise Exception("Unsupported signature packet, version %d" %
+            raise PgpdumpException("Unsupported signature packet, version %d" %
                     self.sig_version)
 
     def parse_subpackets(self, outer_offset, outer_length, hashed=False):
@@ -230,7 +231,7 @@ class SignaturePacket(Packet, AlgoLookup):
 
             sub_data = self.data[offset:offset + sub_len]
             if len(sub_data) != sub_len:
-                raise Exception(
+                raise PgpdumpException(
                         "Unexpected subpackets length: expected %d, got %d" % (
                             sub_len, len(sub_data)))
             subpacket = SignatureSubpacket(subtype, hashed, sub_data)
@@ -330,7 +331,7 @@ class PublicKeyPacket(Packet, AlgoLookup):
             offset = self.parse_key_material(offset)
             # Key type must be RSA for v2 and v3 public keys
             if self.pub_algorithm_type != "rsa":
-                raise Exception("Invalid non-RSA v%d public key" %
+                raise PgpdumpException("Invalid non-RSA v%d public key" %
                         self.pubkey_version)
 
             self.key_id = ('%X' % self.modulus)[-8:].zfill(8).encode('ascii')
@@ -356,7 +357,7 @@ class PublicKeyPacket(Packet, AlgoLookup):
 
             offset = self.parse_key_material(offset)
         else:
-            raise Exception("Unsupported public key packet, version %d" %
+            raise PgpdumpException("Unsupported public key packet, version %d" %
                     self.pubkey_version)
 
     def parse_key_material(self, offset):
@@ -382,7 +383,7 @@ class PublicKeyPacket(Packet, AlgoLookup):
             # Private/Experimental algorithms, just move on
             pass
         else:
-            raise Exception("Unsupported public key algorithm %d" %
+            raise PgpdumpException("Unsupported public key algorithm %d" %
                     self.raw_pub_algorithm)
 
         return offset

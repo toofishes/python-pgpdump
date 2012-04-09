@@ -1,5 +1,11 @@
 import binascii
 
+
+class PgpdumpException(Exception):
+    '''Base exception class raised by any parsing errors, etc.'''
+    pass
+
+
 # 256 values corresponding to each possible byte
 CRC24_TABLE = (
     0x000000, 0x864cfb, 0x8ad50d, 0x0c99f6, 0x93e6e1, 0x15aa1a, 0x1933ec,
