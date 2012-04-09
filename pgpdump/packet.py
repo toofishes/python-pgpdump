@@ -229,6 +229,10 @@ class SignaturePacket(Packet, AlgoLookup):
             offset += 1
 
             sub_data = self.data[offset:offset + sub_len]
+            if len(sub_data) != sub_len:
+                raise Exception(
+                        "Unexpected subpackets length: expected %d, got %d" % (
+                            sub_len, len(sub_data)))
             subpacket = SignatureSubpacket(subtype, hashed, sub_data)
             if subpacket.subtype == 2:
                 self.raw_creation_time = get_int4(subpacket.data, 0)
@@ -329,7 +333,7 @@ class PublicKeyPacket(Packet, AlgoLookup):
                 raise Exception("Invalid non-RSA v%d public key" %
                         self.pubkey_version)
 
-            self.key_id = ('%X' % self.modulus)[-8:].encode('ascii')
+            self.key_id = ('%X' % self.modulus)[-8:].zfill(8).encode('ascii')
             md5 = hashlib.md5()
             md5.update(get_int_bytes(self.modulus))
             md5.update(get_int_bytes(self.exponent))
