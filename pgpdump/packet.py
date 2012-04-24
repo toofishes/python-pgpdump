@@ -428,9 +428,11 @@ class UserIDPacket(Packet):
         self.user_email = None
         super(UserIDPacket, self).__init__(*args, **kwargs)
 
+    user_re = re.compile(r'^([^<]+)? ?<([^>]*)>?')
+
     def parse(self):
         self.user = self.data.decode('utf8', errors='replace')
-        matches = re.match(r'^([^<]+)? ?<([^>]*)>?', self.user)
+        matches = self.user_re.match(self.user)
         if matches:
             if matches.group(1):
                 self.user_name = matches.group(1).strip()
