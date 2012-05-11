@@ -491,11 +491,29 @@ class TrustPacket(Packet):
         if self.length == 2:
             self.trust = get_int2(self.data, 0)
 
+class PublicKeyEncryptedSessionKeyPacket(Packet, AlgoLookup):
+    def __init__(self, *args, **kwargs):
+        self.version = None
+        self.key_id = None
+        self.raw_pub_algorithm = None
+        self.pub_algorithm = None
+        super(PublicKeyEncryptedSessionKeyPacket, self).__init__(*args, **kwargs)
+
+    def parse(self):
+        self.version = self.data[0]
+        self.key_id = get_key_id(self.data, 1)
+        self.raw_pub_algorithm = self.data[9]
+        self.pub_algorithm = self.lookup_pub_algorithm(self.raw_pub_algorithm)
+
+    def __repr__(self):
+        return "<%s: 0x%s (%s), length %d>" % (
+                self.__class__.__name__, self.key_id, self.pub_algorithm,
+                self.length)
 
 TAG_TYPES = {
     # (Name, PacketType) tuples
     0:  ("Reserved", None),
-    1:  ("Public-Key Encrypted Session Key Packet", None),
+    1:  ("Public-Key Encrypted Session Key Packet", PublicKeyEncryptedSessionKeyPacket),
     2:  ("Signature Packet", SignaturePacket),
     3:  ("Symmetric-Key Encrypted Session Key Packet", None),
     4:  ("One-Pass Signature Packet", None),
