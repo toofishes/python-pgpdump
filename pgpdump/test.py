@@ -390,6 +390,34 @@ E/GGdt/Cn5Rr1G933H9nwxo=
         self.assertEqual(888716292, packet.raw_creation_time)
 
 
+class EncryptedPacketsTestCase(TestCase, Helper):
+    def test_parse_sessionkey_elg(self):
+        '''This file contains a public key and message encrypted with an
+        ElGamal Encrypt-Only key.'''
+        asc_data = self.load_data('sessionkey_elg.asc')
+        data = AsciiData(asc_data)
+        packets = list(data.packets())
+        self.assertEqual(2, len(packets))
+        session_key = packets[0]
+        self.assertEqual(3, session_key.session_key_version)
+        self.assertEqual(b"B705D3A4C3751D38", session_key.key_id)
+        self.assertEqual(16, session_key.raw_pub_algorithm)
+        self.assertEqual("ElGamal Encrypt-Only", session_key.pub_algorithm)
+
+    def test_parse_sessionkey_rsa(self):
+        '''This file contains a public key and message encrypted with a RSA
+        Encrypt or Sign key.'''
+        asc_data = self.load_data('sessionkey_rsa.asc')
+        data = AsciiData(asc_data)
+        packets = list(data.packets())
+        self.assertEqual(2, len(packets))
+        session_key = packets[0]
+        self.assertEqual(3, session_key.session_key_version)
+        self.assertEqual(b"1C39A7BD114BFFA5", session_key.key_id)
+        self.assertEqual(1, session_key.raw_pub_algorithm)
+        self.assertEqual("RSA Encrypt or Sign", session_key.pub_algorithm)
+
+
 class PacketTestCase(TestCase):
     def test_lookup_type(self):
         self.assertEqual("Signature Packet", TAG_TYPES[2][0])
