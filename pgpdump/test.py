@@ -244,6 +244,7 @@ E/GGdt/Cn5Rr1G933H9nwxo=
                 self.assertEqual(1316554898, packet.raw_creation_time)
                 self.assertEqual(1, packet.raw_pub_algorithm)
                 self.assertIsNotNone(packet.modulus)
+                self.assertEqual(2048, packet.modulus_bitlen)
                 self.assertEqual(65537, packet.exponent)
                 self.assertEqual(b"012F54CA", packet.fingerprint[32:])
 
@@ -254,6 +255,7 @@ E/GGdt/Cn5Rr1G933H9nwxo=
                 self.assertEqual(1, packet.raw_pub_algorithm)
                 self.assertEqual("RSA Encrypt or Sign", packet.pub_algorithm)
                 self.assertIsNotNone(packet.modulus)
+                self.assertEqual(2048, packet.modulus_bitlen)
                 self.assertEqual(65537, packet.exponent)
                 self.assertEqual(b"ABAF11C65A2970B130ABE3C479BE3E4300411886",
                         packet.fingerprint)
@@ -349,6 +351,7 @@ E/GGdt/Cn5Rr1G933H9nwxo=
         self.assertEqual(944849149, packet.raw_creation_time)
         self.assertIsNone(packet.expiration_time)
         self.assertIsNotNone(packet.modulus)
+        self.assertEqual(2048, packet.modulus_bitlen)
         self.assertIsNotNone(packet.exponent)
         self.assertEqual(b"3FC0BF6B", packet.key_id)
         self.assertEqual(b"7D263C88A1AB7737E31150CB4F3A211A",
@@ -361,6 +364,7 @@ E/GGdt/Cn5Rr1G933H9nwxo=
         self.assertEqual(904151571, packet.raw_creation_time)
         self.assertIsNone(packet.expiration_time)
         self.assertIsNotNone(packet.modulus)
+        self.assertEqual(1024, packet.modulus_bitlen)
         self.assertIsNotNone(packet.exponent)
         self.assertEqual(b"3DDE776D", packet.key_id)
         self.assertEqual(b"48A4F9F891F093019BC7FC532A3C5692",
@@ -380,6 +384,7 @@ E/GGdt/Cn5Rr1G933H9nwxo=
         self.assertEqual(888716291, packet.raw_creation_time)
         self.assertIsNone(packet.expiration_time)
         self.assertIsNone(packet.modulus)
+        self.assertIsNone(packet.modulus_bitlen)
         self.assertIsNone(packet.exponent)
         self.assertIsNotNone(packet.prime)
         self.assertIsNotNone(packet.group_gen)
