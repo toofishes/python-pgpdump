@@ -368,6 +368,7 @@ class PublicKeyPacket(Packet, AlgoLookup):
         else:
             raise PgpdumpException("Unsupported public key packet, version %d" %
                     self.pubkey_version)
+        return offset
 
     def parse_key_material(self, offset):
         if self.raw_pub_algorithm in (1, 2, 3):
