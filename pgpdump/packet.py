@@ -452,6 +452,161 @@ class PublicSubkeyPacket(PublicKeyPacket):
     pass
 
 
+class SecretKeyPacket(PublicKeyPacket):
+    def __init__(self, *args, **kwargs):
+        self.s2k_id = None
+        self.s2k_type = None
+        self.s2k_cipher = None
+        self.s2k_hash = None
+        self.s2k_iv = None
+        self.checksum = None
+        # RSA fields
+        self.exponent_d = None
+        self.prime_p = None
+        self.prime_q = None
+        self.multiplicative_inverse = None
+        # DSA and Elgamal
+        self.exponent_x = None
+        super(SecretKeyPacket, self).__init__(*args, **kwargs)
+
+    def parse(self):
+        # parse the public part
+        offset = PublicKeyPacket.parse(self)
+
+        # parse secret-key packet format from section 5.5.3
+        self.s2k_id = self.data[offset]
+        offset += 1
+
+        if self.s2k_id == 0:
+            # plaintext key data
+            offset = self.parse_private_key_material(offset)
+            self.checksum = get_int2(self.data, offset)
+            offset += 2
+        elif self.s2k_id in (254, 255):
+            # encrypted key data
+            cipher_id = self.data[offset]
+            offset += 1
+            self.s2k_cipher = self.lookup_sym_algorithm(cipher_id)
+
+            # s2k_length is the len of the entire S2K specifier, as per
+            # section 3.7.1 in RFC 4880
+            # we parse the info inside the specifier, but verify the # of
+            # octects we've parsed matches the expected length of the s2k
+            offset_before_s2k = offset
+
+            s2k_type_id = self.data[offset]
+            offset += 1
+            name, s2k_length = S2K_TYPES.get(s2k_type_id, ("Unknown", 0))
+            self.s2k_type = name
+
+            has_iv = True
+            if s2k_type_id == 0:
+                # simple string-to-key
+                hash_id = self.data[offset]
+                offset += 1
+                self.s2k_hash = self.lookup_hash_algorithm(hash_id)
+
+            elif s2k_type_id == 1:
+                # salted string-to-key
+                hash_id = self.data[offset]
+                offset += 1
+                self.s2k_hash = self.lookup_hash_algorithm(hash_id)
+                # ignore 8 bytes
+                offset += 8
+
+            elif s2k_type_id == 2:
+                # reserved
+                pass
+
+            elif s2k_type_id == 3:
+                # iterated and salted
+                hash_id = self.data[offset]
+                offset += 1
+                self.s2k_hash = self.lookup_hash_algorithm(hash_id)
+                # ignore 8 bytes
+                offset += 8
+                # ignore count
+                offset += 1
+                # TODO: parse and store count ?
+
+            elif 100 <= s2k_type_id <= 110:
+                # GnuPG string-to-key
+                # According to g10/parse-packet.c near line 1832, the 101 packet
+                # type is a special GnuPG extension.  This S2K extension is
+                # 6 bytes in total:
+                #
+                #   Octet 0:   101
+                #   Octet 1:   hash algorithm
+                #   Octet 2-4: "GNU"
+                #   Octet 5:   mode integer
+                hash_id = self.data[offset]
+                offset += 1
+                self.s2k_hash = self.lookup_hash_algorithm(hash_id)
+
+                gnu = self.data[offset:offset + 3]
+                offset += 3
+                if gnu != bytearray(b"GNU"):
+                    raise PgpdumpException(
+                            "S2K parsing error: expected 'GNU', got %s" % gnu)
+
+                mode = self.data[offset]
+                mode += 1000
+                offset += 1
+                if mode == 1001:
+                    has_iv = False
+                else:
+                    # TODO implement other modes?
+                    raise PgpdumpException(
+                            "Unsupported GnuPG S2K extension, encountered mode %d" % mode)
+            else:
+                raise PgpdumpException(
+                        "Unsupported public key algorithm %d" % s2k_type_id)
+
+            if s2k_length != (offset - offset_before_s2k):
+                raise PgpdumpException(
+                        "Error parsing string-to-key specifier, mismatched length")
+
+            if has_iv:
+                s2k_iv_len = self.lookup_sym_algorithm_iv(cipher_id)
+                self.s2k_iv = self.data[offset:offset + s2k_iv_len]
+                offset += s2k_iv_len
+
+            # TODO decrypt key data
+            # TODO parse checksum
+            return offset
+
+    def parse_private_key_material(self, offset):
+        if self.raw_pub_algorithm in (1, 2, 3):
+            self.pub_algorithm_type = "rsa"
+            # d, p, q, u
+            self.exponent_d, offset = get_mpi(self.data, offset)
+            self.prime_p, offset = get_mpi(self.data, offset)
+            self.prime_q, offset = get_mpi(self.data, offset)
+            self.multiplicative_inverse, offset = get_mpi(self.data, offset)
+        elif self.raw_pub_algorithm == 17:
+            self.pub_algorithm_type = "dsa"
+            # x
+            self.exponent_x, offset = get_mpi(self.data, offset)
+        elif self.raw_pub_algorithm in (16, 20):
+            self.pub_algorithm_type = "elg"
+            # x
+            self.exponent_x, offset = get_mpi(self.data, offset)
+        elif 100 <= self.raw_pub_algorithm <= 110:
+            # Private/Experimental algorithms, just move on
+            pass
+        else:
+            raise PgpdumpException("Unsupported public key algorithm %d" %
+                    self.raw_pub_algorithm)
+
+        return offset
+
+
+class SecretSubkeyPacket(SecretKeyPacket):
+    '''A Secret-Subkey packet (tag 7) has exactly the same format as a
+    Secret-Key packet, but denotes a subkey.'''
+    pass
+
+
 class UserIDPacket(Packet):
     '''A User ID packet consists of UTF-8 text that is intended to represent
     the name and email address of the key holder. By convention, it includes an
@@ -569,9 +724,9 @@ TAG_TYPES = {
     2:  ("Signature Packet", SignaturePacket),
     3:  ("Symmetric-Key Encrypted Session Key Packet", None),
     4:  ("One-Pass Signature Packet", None),
-    5:  ("Secret Key Packet", None),
+    5:  ("Secret Key Packet", SecretKeyPacket),
     6:  ("Public Key Packet", PublicKeyPacket),
-    7:  ("Secret Subkey Packet", None),
+    7:  ("Secret Subkey Packet", SecretSubkeyPacket),
     8:  ("Compressed Data Packet", None),
     9:  ("Symmetrically Encrypted Data Packet", None),
     10: ("Marker Packet", None),
