@@ -588,6 +588,15 @@ TAG_TYPES = {
     63: ("Private", None),
 }
 
+S2K_TYPES = {
+    # (Name, Length)
+    0: ("Simple S2K", 2),
+    1: ("Salted S2K", 10),
+    2: ("Reserved value", 0),
+    3: ("Iterated and Salted S2K", 11),
+    101: ("GnuPG S2K", 6),
+}
+
 
 def new_tag_length(data, start):
     '''Takes a bytearray of data as input, as well as an offset of where to
