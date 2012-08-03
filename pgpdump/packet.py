@@ -73,6 +73,36 @@ class AlgoLookup(object):
             return "Private/Experimental algorithm"
         return cls.hash_algorithms.get(alg, "Unknown")
 
+    sym_algorithms = {
+        # (Name, IV length)
+        0:  ("Plaintext or unencrypted", 0),
+        1:  ("IDEA", 8),
+        2:  ("Triple-DES", 8),
+        3:  ("CAST5", 8),
+        4:  ("Blowfish", 8),
+        5:  ("Reserved", 8),
+        6:  ("Reserved", 8),
+        7:  ("AES with 128-bit key", 16),
+        8:  ("AES with 192-bit key", 16),
+        9:  ("AES with 256-bit key", 16),
+        10: ("Twofish with 256-bit key", 16),
+        11: ("Camellia with 128-bit key", 16),
+        12: ("Camellia with 192-bit key", 16),
+        13: ("Camellia with 256-bit key", 16),
+    }
+
+    @classmethod
+    def _lookup_sym_algorithm(cls, alg):
+        return cls.sym_algorithms.get(alg, ("Unknown", 0))
+
+    @classmethod
+    def lookup_sym_algorithm(cls, alg):
+        return cls._lookup_sym_algorithm(alg)[0]
+
+    @classmethod
+    def lookup_sym_algorithm_iv(cls, alg):
+        return cls._lookup_sym_algorithm(alg)[1]
+
 
 class SignatureSubpacket(object):
     '''A signature subpacket containing a type, type name, some flags, and the
