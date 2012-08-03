@@ -9,6 +9,7 @@ time. Currently supported things include:
 
 * Signature packets
 * Public key packets
+* Secret key packets
 * ASCII-armor decoding and CRC check
 
 A single codebase with dependencies on only the standard python library is

@@ -6,7 +6,8 @@ from unittest import main, TestCase
 
 from pgpdump import AsciiData, BinaryData
 from pgpdump.packet import (TAG_TYPES, SignaturePacket, PublicKeyPacket,
-        PublicSubkeyPacket, UserIDPacket, old_tag_length, new_tag_length)
+        PublicSubkeyPacket, UserIDPacket, old_tag_length, new_tag_length,
+        SecretKeyPacket, SecretSubkeyPacket)
 from pgpdump.utils import (PgpdumpException, crc24, get_int8, get_mpi,
         get_key_id, get_int_bytes, same_key)
 
@@ -129,7 +130,7 @@ class ParseTestCase(TestCase, Helper):
         self.check_sig_packet(sig_packet, 70, 4, 0, 1317069230,
                 b"5C2E46A0F53A76ED", 17, 2)
         self.assertEqual(2, len(sig_packet.subpackets))
-        self.assertEqual(["Signature Creation Time","Issuer"],
+        self.assertEqual(["Signature Creation Time", "Issuer"],
                 [sp.name for sp in sig_packet.subpackets])
 
     def test_parse_ascii_sig_packet(self):
@@ -454,6 +455,87 @@ class PacketTestCase(TestCase):
         ]
         for expected, invals in data:
             self.assertEqual(expected, new_tag_length(invals, 0))
+
+
+class SecretKeyPacketTestCase(TestCase, Helper):
+    def test_parse_encrypted(self):
+        rawdata = self.load_data('v4_secret_encrypted.gpg')
+        data = BinaryData(rawdata)
+        packets = list(data.packets())
+        self.assertEqual(7, len(packets))
+        subs_seen = 0
+        for packet in packets:
+            self.assertFalse(packet.new)
+
+            if isinstance(packet, SecretSubkeyPacket):
+                subs_seen += 1
+                if subs_seen == 1:
+                    # elg packet
+                    self.assertEqual("elg", packet.pub_algorithm_type)
+                    self.assertEqual(254, packet.s2k_id)
+                    self.assertEqual("Iterated and Salted S2K", packet.s2k_type)
+                    self.assertEqual(
+                            bytearray(b"\x8d\x89\xbd\xdf\x01\x0e\x22\xcd"),
+                            packet.s2k_iv)
+                elif subs_seen == 2:
+                    # rsa packet
+                    self.assertEqual("rsa", packet.pub_algorithm_type)
+                    self.assertEqual(254, packet.s2k_id)
+                    self.assertEqual("Iterated and Salted S2K", packet.s2k_type)
+                    self.assertEqual(
+                            bytearray(b"\x09\x97\x6b\xf5\xd4\x28\x41\x1d"),
+                            packet.s2k_iv)
+            elif isinstance(packet, SecretKeyPacket):
+                self.assertEqual("dsa", packet.pub_algorithm_type)
+                self.assertEqual(254, packet.s2k_id)
+                self.assertEqual("Iterated and Salted S2K", packet.s2k_type)
+                self.assertEqual("CAST5", packet.s2k_cipher)
+                self.assertEqual("SHA1", packet.s2k_hash)
+                self.assertEqual(
+                        bytearray(b"\xc3\x87\xeb\xca\x9b\xce\xbc\x78"),
+                        packet.s2k_iv)
+
+    def test_parse_plain(self):
+        '''The raw values below were extracted from the C version of pgpdump.
+        The hex strings it outputs were converted to base 10 by running the
+        following function over the hex strings:
+                def to_int(x):
+                    return  int(x.replace(' ', ''), 16)
+        '''
+        rawdata = self.load_data('v4_secret_plain.gpg')
+        data = BinaryData(rawdata)
+        packets = list(data.packets())
+        self.assertEqual(7, len(packets))
+        subs_seen = 0
+        for packet in packets:
+            self.assertFalse(packet.new)
+
+            if isinstance(packet, SecretSubkeyPacket):
+                subs_seen += 1
+                if subs_seen == 1:
+                    # elg packet
+                    self.assertEqual("elg", packet.pub_algorithm_type)
+                    self.assertEqual(0, packet.s2k_id)
+                    self.assertEqual(None, packet.s2k_type)
+                    self.assertEqual(None, packet.s2k_iv)
+                    self.assertEqual(245799026332407193298181926223748572866928987611495184689013385965880161244176879821250061522687647728, packet.exponent_x)
+                elif subs_seen == 2:
+                    # rsa packet
+                    self.assertEqual("rsa", packet.pub_algorithm_type)
+                    self.assertEqual(0, packet.s2k_id)
+                    self.assertEqual(None, packet.s2k_type)
+                    self.assertEqual(None, packet.s2k_iv)
+                    self.assertEqual(107429307998432888320715351604215972074903508478185926034856042440678824041847327442082101397552291647796540657257050768251344941490371163761048934745124363183224819621105784780195398083026664006729876758821509430352212953204518272377415915285011886868211417421097179985188014641310204357388385968166040278287, packet.multiplicative_inverse)
+                    self.assertEqual(139930219416447408374822893460828502304441966752753468842648203646336195082149424690339775194932419616945814365656771053789999508162542355224095838373016952414720809190039261860912609841054241835835137530162417625471114503804567967161522096406622711734972153324109508774000862492521907132111400296639152885151, packet.prime_p)
+                    self.assertEqual(141774976438365791329330227605232641244334061384594969589427240157587195987726021563323880620442249788289724672124037112182500862823754846020398652238714637523098123565121790819658975965315629614215592460191153065569430777288475743983312129144619017542854009503581558744199305796137178366407180728113362644607, packet.prime_q)
+                    self.assertEqual(5830467418164177455383939797360032476940913805978768568081128075462505586965694225559897974113088818228809697270431492119090365699278285350171676334156873270109344274747057694689185206358606371235913423003163252354603704380371252575866102476793736443620998412227609599802054206292004785471167177881398711806191315950196087041018693839148033680564198494910540148825273531803832541184563811332315506727878483469747798396155096313345751606322830230368849084875744911041500024805242117661173352379509490605300753957220916597285056567409410296154792321206401452887335121085203916552891062930596871199021743741984622581173, packet.exponent_d)
+            elif isinstance(packet, SecretKeyPacket):
+                self.assertEqual("dsa", packet.pub_algorithm_type)
+                self.assertEqual(254, packet.s2k_id)
+                self.assertEqual("GnuPG S2K", packet.s2k_type)
+                self.assertEqual("CAST5", packet.s2k_cipher)
+                self.assertEqual("SHA1", packet.s2k_hash)
+                self.assertEqual(None, packet.s2k_iv)
 
 
 if __name__ == '__main__':

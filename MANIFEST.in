@@ -9,3 +9,5 @@ include testdata/sessionkey_elg.asc
 include testdata/sessionkey_rsa.asc
 include testdata/v3elgpk.asc
 include testdata/v3pubkeys.gpg
+include testdata/v4_secret_encrypted.gpg
+include testdata/v4_secret_plain.gpg
