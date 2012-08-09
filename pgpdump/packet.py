@@ -24,7 +24,7 @@ class Packet(object):
         '''Perform any parsing necessary to populate fields on this packet.
         This method is called as the last step in __init__(). The base class
         method is a no-op; subclasses should use this as required.'''
-        pass
+        return 0
 
     def __repr__(self):
         new = "old"
@@ -216,6 +216,8 @@ class SignaturePacket(Packet, AlgoLookup):
             raise PgpdumpException("Unsupported signature packet, version %d" %
                     self.sig_version)
 
+        return offset
+
     def parse_subpackets(self, outer_offset, outer_length, hashed=False):
         offset = outer_offset
         while offset < outer_offset + outer_length:
@@ -368,6 +370,7 @@ class PublicKeyPacket(Packet, AlgoLookup):
         else:
             raise PgpdumpException("Unsupported public key packet, version %d" %
                     self.pubkey_version)
+
         return offset
 
     def parse_key_material(self, offset):
@@ -440,6 +443,8 @@ class UserIDPacket(Packet):
             if matches.group(2):
                 self.user_email = matches.group(2).strip()
 
+        return self.length
+
     def __repr__(self):
         return "<%s: %r (%r), length %d>" % (
                 self.__class__.__name__, self.user_name, self.user_email,
@@ -455,7 +460,7 @@ class UserAttributePacket(Packet):
 
     def parse(self):
         offset = sub_offset = sub_len = 0
-        while offset + sub_len < len(self.data):
+        while offset + sub_len < self.length:
             # each subpacket is [variable length] [subtype] [data]
             sub_offset, sub_len, sub_part = new_tag_length(self.data, offset)
             # sub_len includes the subtype single byte, knock that off
@@ -480,6 +485,8 @@ class UserAttributePacket(Packet):
                 else:
                     self.image_format = "unknown"
 
+        return self.length
+
 
 class TrustPacket(Packet):
     def __init__(self, *args, **kwargs):
@@ -491,6 +498,8 @@ class TrustPacket(Packet):
         integer values into some internal enumeration.'''
         if self.length == 2:
             self.trust = get_int2(self.data, 0)
+            return 2
+        return 0
 
 
 class PublicKeyEncryptedSessionKeyPacket(Packet, AlgoLookup):
@@ -512,6 +521,9 @@ class PublicKeyEncryptedSessionKeyPacket(Packet, AlgoLookup):
             raise PgpdumpException(
                     "Unsupported encrypted session key packet, version %d" %
                     self.session_key_version)
+
+        # this is hardcoded to work with the only known session key version
+        return 10
 
     def __repr__(self):
         return "<%s: 0x%s (%s), length %d>" % (
