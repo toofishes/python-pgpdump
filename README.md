@@ -10,7 +10,8 @@ time. Currently supported things include:
 * Signature packets
 * Public key packets
 * Secret key packets
+* Trust, user ID, and user attribute packets
 * ASCII-armor decoding and CRC check
 
 A single codebase with dependencies on only the standard python library is
-compatible across Python 2.7, Python 3.2, and PyPy 1.8.
+compatible across Python 2.7, Python 3.2+, and PyPy 1.8+.
