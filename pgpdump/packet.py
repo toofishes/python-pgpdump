@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 import hashlib
 import re
-from warnings import warn
 
 from .utils import (PgpdumpException, get_int2, get_int4, get_mpi,
         get_key_id, get_int_bytes)
@@ -282,11 +281,6 @@ class SignaturePacket(Packet, AlgoLookup):
             self.expiration_time = self.creation_time + timedelta(
                     seconds=self.raw_expiration_time)
 
-    @property
-    def datetime(self):
-        warn("deprecated, use creation_time", DeprecationWarning)
-        return self.creation_time
-
     sig_types = {
         0x00: "Signature of a binary document",
         0x01: "Signature of a canonical text document",
@@ -430,11 +424,6 @@ class PublicKeyPacket(Packet, AlgoLookup):
                     self.raw_pub_algorithm)
 
         return offset
-
-    @property
-    def datetime(self):
-        warn("deprecated, use creation_time", DeprecationWarning)
-        return self.creation_time
 
     @property
     def pub_algorithm(self):
