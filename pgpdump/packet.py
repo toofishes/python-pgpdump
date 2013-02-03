@@ -3,7 +3,7 @@ import hashlib
 import re
 
 from .utils import (PgpdumpException, get_int2, get_int4, get_mpi,
-        get_key_id, get_int_bytes)
+        get_key_id, get_hex_data, get_int_bytes)
 
 
 class Packet(object):
@@ -458,6 +458,7 @@ class SecretKeyPacket(PublicKeyPacket):
         self.s2k_hash = None
         self.s2k_iv = None
         self.checksum = None
+        self.serial_number = None
         # RSA fields
         self.exponent_d = None
         self.prime_p = None
@@ -556,6 +557,17 @@ class SecretKeyPacket(PublicKeyPacket):
                 offset += 1
                 if mode == 1001:
                     has_iv = False
+                elif mode == 1002:
+                    has_iv = False
+
+                    serial_len = self.data[offset]
+                    if serial_len < 0:
+                        raise PgpdumpException(
+                                "Unexpected serial number length: %d" %
+                                serial_len)
+
+                    self.serial_number = get_hex_data(self.data, offset + 1,
+                            serial_len)
                 else:
                     # TODO implement other modes?
                     raise PgpdumpException(

@@ -537,6 +537,24 @@ class SecretKeyPacketTestCase(TestCase, Helper):
                 self.assertEqual("SHA1", packet.s2k_hash)
                 self.assertEqual(None, packet.s2k_iv)
 
+    def test_parse_mode_1002(self):
+        rawdata = self.load_data('secret_key_mode_1002.bin')
+        data = BinaryData(rawdata)
+        packets = list(data.packets())
+        self.assertEqual(7, len(packets))
+
+        for packet in packets:
+            self.assertFalse(packet.new)
+
+            if isinstance(packet, SecretKeyPacket):
+                # this block matches both top-level and subkeys
+                self.assertEqual("rsa", packet.pub_algorithm_type)
+                self.assertEqual(255, packet.s2k_id)
+                self.assertEqual("GnuPG S2K", packet.s2k_type)
+                self.assertEqual("Plaintext or unencrypted", packet.s2k_cipher)
+                self.assertEqual("Unknown", packet.s2k_hash)
+                self.assertEqual(None, packet.s2k_iv)
+
 
 if __name__ == '__main__':
     main()
