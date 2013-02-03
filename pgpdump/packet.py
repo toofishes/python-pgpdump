@@ -442,6 +442,15 @@ class PublicSubkeyPacket(PublicKeyPacket):
 
 
 class SecretKeyPacket(PublicKeyPacket):
+    s2k_types = {
+        # (Name, Length)
+        0: ("Simple S2K", 2),
+        1: ("Salted S2K", 10),
+        2: ("Reserved value", 0),
+        3: ("Iterated and Salted S2K", 11),
+        101: ("GnuPG S2K", 6),
+    }
+
     def __init__(self, *args, **kwargs):
         self.s2k_id = None
         self.s2k_type = None
@@ -458,9 +467,13 @@ class SecretKeyPacket(PublicKeyPacket):
         self.exponent_x = None
         super(SecretKeyPacket, self).__init__(*args, **kwargs)
 
+    @classmethod
+    def lookup_s2k(cls, s2k_type_id):
+        return cls.s2k_types.get(s2k_type_id, ("Unknown", 0))
+
     def parse(self):
         # parse the public part
-        offset = PublicKeyPacket.parse(self)
+        offset = super(SecretKeyPacket, self).parse()
 
         # parse secret-key packet format from section 5.5.3
         self.s2k_id = self.data[offset]
@@ -485,7 +498,7 @@ class SecretKeyPacket(PublicKeyPacket):
 
             s2k_type_id = self.data[offset]
             offset += 1
-            name, s2k_length = S2K_TYPES.get(s2k_type_id, ("Unknown", 0))
+            name, s2k_length = self.lookup_s2k(s2k_type_id)
             self.s2k_type = name
 
             has_iv = True
@@ -730,15 +743,6 @@ TAG_TYPES = {
     61: ("Private", None),
     62: ("Private", None),
     63: ("Private", None),
-}
-
-S2K_TYPES = {
-    # (Name, Length)
-    0: ("Simple S2K", 2),
-    1: ("Salted S2K", 10),
-    2: ("Reserved value", 0),
-    3: ("Iterated and Salted S2K", 11),
-    101: ("GnuPG S2K", 6),
 }
 
 
