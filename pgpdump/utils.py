@@ -100,11 +100,17 @@ def get_mpi(data, offset):
     return mpi, offset
 
 
+def get_hex_data(data, offset, byte_count):
+    '''Pull the given number of bytes from data at offset and return as a
+    hex-encoded string.'''
+    key_id = binascii.hexlify(data[offset:offset + byte_count])
+    return key_id.upper()
+
+
 def get_key_id(data, offset):
     '''Pull eight bytes from data at offset and return as a 16-byte hex-encoded
     string.'''
-    key_id = binascii.hexlify(data[offset:offset + 8])
-    return key_id.upper()
+    return get_hex_data(data, offset, 8)
 
 
 def get_int_bytes(data):
