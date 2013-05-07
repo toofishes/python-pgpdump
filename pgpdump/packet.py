@@ -255,7 +255,7 @@ class SignaturePacket(Packet, AlgoLookup):
             # sub_len includes the subtype single byte, knock that off
             sub_len -= 1
             # initial length bytes
-            offset += 1 + sub_offset
+            offset += sub_offset
 
             subtype = self.data[offset]
             offset += 1
@@ -665,7 +665,7 @@ class UserAttributePacket(Packet):
             # sub_len includes the subtype single byte, knock that off
             sub_len -= 1
             # initial length bytes
-            offset += 1 + sub_offset
+            offset += sub_offset
 
             sub_type = self.data[offset]
             offset += 1
@@ -765,15 +765,24 @@ def new_tag_length(data, start):
     offset = length = 0
     partial = False
 
+    # one-octet
     if first < 192:
-        length = first
-    elif first < 224:
         offset = 1
+        length = first
+
+    # two-octet
+    elif first < 224:
+        offset = 2
         length = ((first - 192) << 8) + data[start + 1] + 192
+
+    # five-octet
     elif first == 255:
-        offset = 4
+        offset = 5
         length = get_int4(data, start + 1)
+
+    # Partial Body Length header, one octet long
     else:
+        offset = 1
         # partial length, 224 <= l < 255
         length = 1 << (first & 0x1f)
         partial = True
@@ -809,7 +818,6 @@ def construct_packet(data, start):
     new = bool(data[start] & 0x40)
     if new:
         data_offset, length, partial = new_tag_length(data, start + 1)
-        data_offset += 1
     else:
         tag >>= 2
         data_offset, length = old_tag_length(data, start)

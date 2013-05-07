@@ -439,19 +439,19 @@ class PacketTestCase(TestCase):
 
     def test_new_tag_length(self):
         data = [
-            ((0, 2, False), [0x02]),
-            ((0, 16, False), [0x10]),
-            ((0, 100, False), [0x64]),
-            ((0, 166, False), [0xa6]),
-            ((0, 168, False), [0xa8]),
-            ((1, 1723, False), [0xc5, 0xfb]),
-            ((1, 3923, False), [0xce, 0x93]),
-            ((1, 5119, False), [0xd3, 0x3f]),
-            ((1, 6476, False), [0xd8, 0x8c]),
-            ((0, 8192, True), [0xed]),
-            ((4, 26306, False), [0xff, 0x00, 0x00, 0x66, 0xc2]),
-            ((4, 26306, False), bytearray(b'\xff\x00\x00\x66\xc2')),
-            ((4, 100000, False), [0xff, 0x00, 0x01, 0x86, 0xa0]),
+            ((1, 2, False), [0x02]),
+            ((1, 16, False), [0x10]),
+            ((1, 100, False), [0x64]),
+            ((1, 166, False), [0xa6]),
+            ((1, 168, False), [0xa8]),
+            ((2, 1723, False), [0xc5, 0xfb]),
+            ((2, 3923, False), [0xce, 0x93]),
+            ((2, 5119, False), [0xd3, 0x3f]),
+            ((2, 6476, False), [0xd8, 0x8c]),
+            ((1, 8192, True), [0xed]),
+            ((5, 26306, False), [0xff, 0x00, 0x00, 0x66, 0xc2]),
+            ((5, 26306, False), bytearray(b'\xff\x00\x00\x66\xc2')),
+            ((5, 100000, False), [0xff, 0x00, 0x01, 0x86, 0xa0]),
         ]
         for expected, invals in data:
             self.assertEqual(expected, new_tag_length(invals, 0))
