@@ -418,6 +418,16 @@ class EncryptedPacketsTestCase(TestCase, Helper):
         self.assertEqual(1, session_key.raw_pub_algorithm)
         self.assertEqual("RSA Encrypt or Sign", session_key.pub_algorithm)
 
+    def test_parse_partial_length(self):
+        '''This file contains an encrypted message with a Partial Body Length header
+           Reference: http://tools.ietf.org/html/rfc4880#section-4.2.2.4
+        '''
+
+        rawdata = self.load_data('partial_length.gpg')
+        data = BinaryData(rawdata)
+        packets = list(data.packets())
+        self.assertEqual(2, len(packets))
+
 
 class PacketTestCase(TestCase):
     def test_lookup_type(self):
