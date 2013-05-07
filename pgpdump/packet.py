@@ -760,7 +760,9 @@ TAG_TYPES = {
 
 def new_tag_length(data, start):
     '''Takes a bytearray of data as input, as well as an offset of where to
-    look. Returns a derived (offset, length, partial) tuple.'''
+    look. Returns a derived (offset, length, partial) tuple.
+    Reference: http://tools.ietf.org/html/rfc4880#section-4.2.2
+    '''
     first = data[start]
     offset = length = 0
     partial = False
