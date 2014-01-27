@@ -634,7 +634,7 @@ class UserIDPacket(Packet):
     user_re = re.compile(r'^([^<]+)? ?<([^>]*)>?')
 
     def parse(self):
-        self.user = self.data.decode('utf8', errors='replace')
+        self.user = self.data.decode('utf8', 'replace')
         matches = self.user_re.match(self.user)
         if matches:
             if matches.group(1):
