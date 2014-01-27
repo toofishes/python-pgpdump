@@ -3,7 +3,7 @@ import hashlib
 import re
 
 from .utils import (PgpdumpException, get_int2, get_int4, get_mpi,
-        get_key_id, get_hex_data, get_int_bytes)
+        get_key_id, get_hex_data, get_int_bytes, pack_data)
 
 
 class Packet(object):
@@ -377,8 +377,8 @@ class PublicKeyPacket(Packet, AlgoLookup):
         elif self.pubkey_version == 4:
             sha1 = hashlib.sha1()
             seed_bytes = (0x99, (self.length >> 8) & 0xff, self.length & 0xff)
-            sha1.update(bytearray(seed_bytes))
-            sha1.update(self.data)
+            sha1.update(pack_data(bytearray(seed_bytes)))
+            sha1.update(pack_data(self.data))
             self.fingerprint = sha1.hexdigest().upper().encode('ascii')
             self.key_id = self.fingerprint[24:]
 

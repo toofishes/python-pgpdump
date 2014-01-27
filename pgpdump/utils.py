@@ -1,4 +1,10 @@
 import binascii
+import sys
+
+PY26 = sys.version_info[0] == 2 and sys.version_info[1] <= 6
+
+if PY26:
+    import struct
 
 
 class PgpdumpException(Exception):
@@ -103,7 +109,10 @@ def get_mpi(data, offset):
 def get_hex_data(data, offset, byte_count):
     '''Pull the given number of bytes from data at offset and return as a
     hex-encoded string.'''
-    key_id = binascii.hexlify(data[offset:offset + byte_count])
+    key_data = data[offset:offset + byte_count]
+    if PY26:
+        key_data = buffer(key_data)
+    key_id = binascii.hexlify(key_data)
     return key_id.upper()
 
 
@@ -120,6 +129,12 @@ def get_int_bytes(data):
     hexval = hexval.zfill(new_len)
     return binascii.unhexlify(hexval.encode('ascii'))
 
+
+def pack_data(data):
+    '''Pack iterable of binary data into a bytestring if necessary.'''
+    if PY26:
+        return struct.pack('%dB' % len(data), *data)
+    return data
 
 def same_key(key_a, key_b):
     '''Comparison function for key ID or fingerprint strings, taking into
