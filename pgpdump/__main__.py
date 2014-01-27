@@ -5,7 +5,7 @@ from . import AsciiData, BinaryData
 
 def parsefile(name):
     with open(name, 'rb') as infile:
-        if name.endswith('.asc'):
+        if name.endswith('.asc') or name.endswith('.txt'):
             data = AsciiData(infile.read())
         else:
             data = BinaryData(infile.read())
