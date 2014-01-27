@@ -104,19 +104,23 @@ class Helper(object):
             data = fileobj.read()
         return data
 
+    # Here for 2.6 compatibility; these won't be used by 2.7 and up
+    def assertIsNone(self, obj, msg=None):
+        return self.assertTrue(obj is None, msg)
+
+    def assertIsNotNone(self, obj, msg=None):
+        return self.assertFalse(obj is None, msg)
+
 
 class ParseTestCase(TestCase, Helper):
     def test_parse_empty(self):
-        with self.assertRaises(PgpdumpException):
-            BinaryData(None)
+        self.assertRaises(PgpdumpException, BinaryData, None)
 
     def test_parse_short(self):
-        with self.assertRaises(PgpdumpException):
-            BinaryData([0x00])
+        self.assertRaises(PgpdumpException, BinaryData, [0x00])
 
     def test_parse_invalid(self):
-        with self.assertRaises(PgpdumpException):
-            BinaryData([0x00, 0x00])
+        self.assertRaises(PgpdumpException, BinaryData, [0x00, 0x00])
 
     def test_parse_single_sig_packet(self):
         base64_sig = b"iEYEABECAAYFAk6A4a4ACgkQXC5GoPU6du1ATACgodGyQne3Rb7"\
