@@ -5,6 +5,7 @@ include testdata/dan.gpg
 include testdata/junio.gpg
 include testdata/linus.asc
 include testdata/linus.gpg
+include testdata/partial_length.gpg
 include testdata/secret_key_mode_1002.bin
 include testdata/sessionkey_elg.asc
 include testdata/sessionkey_rsa.asc
